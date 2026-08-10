@@ -1,8 +1,12 @@
-export function TopBar() {
+type TopBarProps = {
+  title: string
+}
+
+export function TopBar({ title }: TopBarProps) {
   return (
     <header className="topbar">
       <div className="topbar-title">
-        <span>Library</span>
+        <span>{title}</span>
       </div>
 
       <div className="topbar-actions">

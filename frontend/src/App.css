@@ -369,6 +369,124 @@
 }
 
 /* ========================================
+   Workspace section placeholders
+======================================== */
+
+.section-placeholder {
+  min-height: 390px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 48px;
+
+  position: relative;
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 26px;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(126, 88, 255, 0.075),
+      transparent 36%
+    ),
+    rgba(255, 255, 255, 0.012);
+}
+
+.section-placeholder::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px
+    );
+
+  background-size: 32px 32px;
+
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.7),
+    transparent 90%
+  );
+}
+
+.section-placeholder-content {
+  position: relative;
+  z-index: 1;
+
+  max-width: 470px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  text-align: center;
+}
+
+.section-placeholder-icon {
+  width: 64px;
+  height: 64px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 24px;
+
+  border: 1px solid rgba(143, 112, 255, 0.13);
+  border-radius: 20px;
+
+  background: rgba(128, 93, 255, 0.08);
+
+  color: #8f78ff;
+}
+
+.section-placeholder-icon svg {
+  width: 27px;
+  height: 27px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.section-placeholder h2 {
+  margin: 0;
+
+  color: #e6e7ec;
+
+  font-size: 23px;
+  font-weight: 500;
+
+  letter-spacing: -0.025em;
+}
+
+.section-placeholder p {
+  max-width: 430px;
+
+  margin: 13px 0 0;
+
+  color: #696e7a;
+
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* ========================================
    Empty library
 ======================================== */
 
@@ -595,6 +713,11 @@
 
     padding: 32px 22px;
 
+    border-radius: 20px;
+  }
+    .section-placeholder {
+    min-height: 340px;
+    padding: 32px 22px;
     border-radius: 20px;
   }
 }
