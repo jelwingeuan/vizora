@@ -1,7 +1,10 @@
 import { useState } from 'react'
 
+import { ImageGrid } from '../gallery/ImageGrid'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
+
+import { mockImages } from '../../data/mockImages'
 
 import type { WorkspaceSection } from '../../types/navigation'
 
@@ -50,52 +53,58 @@ export function AppLayout() {
 function LibraryWorkspace() {
   return (
     <>
-      <section className="workspace-intro">
-        <span className="eyebrow">
-          Visual intelligence workspace
-        </span>
-
-        <h1>Your ideas, in one visual space.</h1>
-
-        <p>
-          Collect references, build visual boards, and eventually let AI
-          help you understand and rediscover your creative library.
-        </p>
-      </section>
-
-      <section
-        className="empty-library"
-        aria-label="Empty visual library"
-      >
-        <div className="empty-library-content">
-          <div className="empty-library-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <rect
-                x="3"
-                y="4"
-                width="18"
-                height="16"
-                rx="3"
-              />
-
-              <circle cx="9" cy="10" r="2" />
-
-              <path d="m5.5 17 4.5-4 3 2.5 2.5-2 3 3" />
-            </svg>
-          </div>
-
-          <span className="empty-library-label">
-            Your library
+      <section className="library-header">
+        <div>
+          <span className="eyebrow">
+            Visual intelligence workspace
           </span>
 
-          <h2>Your visual library starts here.</h2>
+          <h1>Library</h1>
 
           <p>
-            Images, boards, references, and AI insights will appear
-            here as we continue building VIZORA.
+            A visual collection of references, ideas, moods, and
+            creative directions.
           </p>
         </div>
+
+        <div className="library-header-meta">
+          <span>{mockImages.length} references</span>
+        </div>
       </section>
+
+      <div className="library-toolbar">
+        <div className="library-filter-group">
+          <button
+            className="filter-chip filter-chip-active"
+            type="button"
+          >
+            All
+          </button>
+
+          <button className="filter-chip" type="button">
+            Recent
+          </button>
+
+          <button className="filter-chip" type="button">
+            Favorites
+          </button>
+        </div>
+
+        <button
+          className="gallery-view-button"
+          type="button"
+          aria-label="Gallery view"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+        </button>
+      </div>
+
+      <ImageGrid images={mockImages} />
     </>
   )
 }
