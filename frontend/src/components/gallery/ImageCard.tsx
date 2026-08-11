@@ -2,22 +2,39 @@ import type { VisualReference } from '../../types/image'
 
 type ImageCardProps = {
   image: VisualReference
+  isSelected: boolean
+  onSelect: (image: VisualReference) => void
 }
 
-export function ImageCard({ image }: ImageCardProps) {
+export function ImageCard({
+  image,
+  isSelected,
+  onSelect,
+}: ImageCardProps) {
   return (
-    <article className="image-card">
+    <article
+      className={`image-card ${
+        isSelected ? 'image-card-selected' : ''
+      }`}
+    >
       <div
         className="image-card-media"
         style={{
           aspectRatio: `${image.width} / ${image.height}`,
         }}
       >
-        <img
-          src={image.src}
-          alt={image.alt}
-          loading="lazy"
-        />
+        <button
+          className="image-card-select"
+          type="button"
+          onClick={() => onSelect(image)}
+          aria-label={`Open ${image.title}`}
+        >
+          <img
+            src={image.src}
+            alt={image.alt}
+            loading="lazy"
+          />
+        </button>
 
         <div className="image-card-overlay">
           <button

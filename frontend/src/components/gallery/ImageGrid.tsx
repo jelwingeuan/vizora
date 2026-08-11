@@ -4,9 +4,15 @@ import type { VisualReference } from '../../types/image'
 
 type ImageGridProps = {
   images: VisualReference[]
+  selectedImageId?: string
+  onSelectImage: (image: VisualReference) => void
 }
 
-export function ImageGrid({ images }: ImageGridProps) {
+export function ImageGrid({
+  images,
+  selectedImageId,
+  onSelectImage,
+}: ImageGridProps) {
   return (
     <section
       className="image-grid"
@@ -16,6 +22,8 @@ export function ImageGrid({ images }: ImageGridProps) {
         <ImageCard
           key={image.id}
           image={image}
+          isSelected={selectedImageId === image.id}
+          onSelect={onSelectImage}
         />
       ))}
     </section>

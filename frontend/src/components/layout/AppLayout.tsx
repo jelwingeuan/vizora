@@ -1,11 +1,13 @@
 import { useState } from 'react'
 
+import { ImageDetailPanel } from '../gallery/ImageDetailPanel'
 import { ImageGrid } from '../gallery/ImageGrid'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 
 import { mockImages } from '../../data/mockImages'
 
+import type { VisualReference } from '../../types/image'
 import type { WorkspaceSection } from '../../types/navigation'
 
 const sectionTitles: Record<WorkspaceSection, string> = {
@@ -51,6 +53,9 @@ export function AppLayout() {
 }
 
 function LibraryWorkspace() {
+  const [selectedImage, setSelectedImage] =
+    useState<VisualReference | null>(null)
+
   return (
     <>
       <section className="library-header">
@@ -81,11 +86,17 @@ function LibraryWorkspace() {
             All
           </button>
 
-          <button className="filter-chip" type="button">
+          <button
+            className="filter-chip"
+            type="button"
+          >
             Recent
           </button>
 
-          <button className="filter-chip" type="button">
+          <button
+            className="filter-chip"
+            type="button"
+          >
             Favorites
           </button>
         </div>
@@ -96,15 +107,53 @@ function LibraryWorkspace() {
           aria-label="Gallery view"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" rx="1.5" />
-            <rect x="14" y="3" width="7" height="7" rx="1.5" />
-            <rect x="3" y="14" width="7" height="7" rx="1.5" />
-            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            <rect
+              x="3"
+              y="3"
+              width="7"
+              height="7"
+              rx="1.5"
+            />
+
+            <rect
+              x="14"
+              y="3"
+              width="7"
+              height="7"
+              rx="1.5"
+            />
+
+            <rect
+              x="3"
+              y="14"
+              width="7"
+              height="7"
+              rx="1.5"
+            />
+
+            <rect
+              x="14"
+              y="14"
+              width="7"
+              height="7"
+              rx="1.5"
+            />
           </svg>
         </button>
       </div>
 
-      <ImageGrid images={mockImages} />
+      <ImageGrid
+        images={mockImages}
+        selectedImageId={selectedImage?.id}
+        onSelectImage={setSelectedImage}
+      />
+
+      {selectedImage && (
+        <ImageDetailPanel
+          image={selectedImage}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
     </>
   )
 }
