@@ -749,6 +749,168 @@
 }
 
 /* ========================================
+   Image uploads
+======================================== */
+
+.upload-section {
+  margin-bottom: 28px;
+}
+
+.upload-dropzone {
+  min-height: 118px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 18px;
+
+  padding: 22px 24px;
+
+  border: 1px dashed
+    rgba(255, 255, 255, 0.11);
+
+  border-radius: 18px;
+
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      rgba(126, 88, 255, 0.05),
+      transparent 40%
+    ),
+    rgba(255, 255, 255, 0.012);
+
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.upload-dropzone-active {
+  border-color:
+    rgba(143, 112, 255, 0.65);
+
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      rgba(126, 88, 255, 0.12),
+      transparent 45%
+    ),
+    rgba(126, 88, 255, 0.035);
+
+  transform: scale(1.003);
+}
+
+.upload-file-input {
+  display: none;
+}
+
+.upload-dropzone-icon {
+  width: 46px;
+  height: 46px;
+
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid
+    rgba(143, 112, 255, 0.13);
+
+  border-radius: 14px;
+
+  background:
+    rgba(128, 93, 255, 0.07);
+
+  color: #8872f4;
+}
+
+.upload-dropzone-icon svg {
+  width: 21px;
+  height: 21px;
+
+  fill: none;
+  stroke: currentColor;
+
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.upload-dropzone-copy {
+  min-width: 0;
+
+  display: flex;
+  flex: 1;
+
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.upload-dropzone-copy strong {
+  color: #c7cad3;
+
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.upload-dropzone-copy span {
+  color: #5e636f;
+
+  font-size: 10px;
+}
+
+.upload-browse-button {
+  flex-shrink: 0;
+
+  padding: 9px 13px;
+
+  border: 1px solid
+    rgba(143, 112, 255, 0.17);
+
+  border-radius: 10px;
+
+  background:
+    rgba(126, 92, 255, 0.09);
+
+  color: #b7aaff;
+
+  font-size: 10px;
+  font-weight: 550;
+
+  cursor: pointer;
+
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.upload-browse-button:hover {
+  color: #ded8ff;
+
+  border-color:
+    rgba(143, 112, 255, 0.3);
+
+  background:
+    rgba(126, 92, 255, 0.14);
+}
+
+.upload-browse-button:focus-visible {
+  outline: 2px solid #8f78ff;
+
+  outline-offset: 2px;
+}
+
+.upload-error {
+  margin: 9px 4px 0;
+
+  color: #d9828c;
+
+  font-size: 10px;
+}
+
+/* ========================================
    Masonry gallery
 ======================================== */
 
@@ -1492,4 +1654,25 @@
   .detail-preview {
     border-radius: 15px;
   }
+
+  .upload-dropzone {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+
+    padding: 18px;
+
+    border-radius: 15px;
+  }
+
+  .upload-dropzone-copy {
+    min-width: calc(100% - 70px);
+  }
+
+  .upload-browse-button {
+    width: 100%;
+
+    margin-top: 3px;
+  }
+
 }

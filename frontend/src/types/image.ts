@@ -6,4 +6,8 @@ export type VisualReference = {
   tags: string[]
   width: number
   height: number
+
+  source?: 'mock' | 'upload'
+  fileName?: string
+  fileSize?: number
 }

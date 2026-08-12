@@ -1,11 +1,20 @@
-import { useState } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 
 import { ImageDetailPanel } from '../gallery/ImageDetailPanel'
 import { ImageGrid } from '../gallery/ImageGrid'
+import { ImageDropzone } from '../upload/ImageDropzone'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 
 import { mockImages } from '../../data/mockImages'
+
+import {
+  createVisualReferenceFromFile,
+} from '../../utils/imageFiles'
 
 import type { VisualReference } from '../../types/image'
 import type { WorkspaceSection } from '../../types/navigation'
@@ -56,6 +65,59 @@ function LibraryWorkspace() {
   const [selectedImage, setSelectedImage] =
     useState<VisualReference | null>(null)
 
+  const [uploadedImages, setUploadedImages] =
+    useState<VisualReference[]>([])
+
+  const objectUrlsRef =
+    useRef<string[]>([])
+
+  const images = [
+    ...uploadedImages,
+    ...mockImages,
+  ]
+
+  useEffect(() => {
+    return () => {
+      objectUrlsRef.current.forEach(
+        (objectUrl) => {
+          URL.revokeObjectURL(objectUrl)
+        },
+      )
+    }
+  }, [])
+
+  async function handleUploadFiles(
+    files: File[],
+  ) {
+    const results = await Promise.allSettled(
+      files.map(
+        createVisualReferenceFromFile,
+      ),
+    )
+
+    const newImages = results
+      .filter(
+        (
+          result,
+        ): result is PromiseFulfilledResult<VisualReference> =>
+          result.status === 'fulfilled',
+      )
+      .map((result) => result.value)
+
+    if (newImages.length === 0) {
+      return
+    }
+
+    objectUrlsRef.current.push(
+      ...newImages.map((image) => image.src),
+    )
+
+    setUploadedImages((currentImages) => [
+      ...newImages,
+      ...currentImages,
+    ])
+  }
+
   return (
     <>
       <section className="library-header">
@@ -67,13 +129,15 @@ function LibraryWorkspace() {
           <h1>Library</h1>
 
           <p>
-            A visual collection of references, ideas, moods, and
-            creative directions.
+            A visual collection of references,
+            ideas, moods, and creative directions.
           </p>
         </div>
 
         <div className="library-header-meta">
-          <span>{mockImages.length} references</span>
+          <span>
+            {images.length} references
+          </span>
         </div>
       </section>
 
@@ -106,7 +170,10 @@ function LibraryWorkspace() {
           type="button"
           aria-label="Gallery view"
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <rect
               x="3"
               y="3"
@@ -142,8 +209,12 @@ function LibraryWorkspace() {
         </button>
       </div>
 
+      <ImageDropzone
+        onFilesSelected={handleUploadFiles}
+      />
+
       <ImageGrid
-        images={mockImages}
+        images={images}
         selectedImageId={selectedImage?.id}
         onSelectImage={setSelectedImage}
       />
@@ -151,7 +222,9 @@ function LibraryWorkspace() {
       {selectedImage && (
         <ImageDetailPanel
           image={selectedImage}
-          onClose={() => setSelectedImage(null)}
+          onClose={() =>
+            setSelectedImage(null)
+          }
         />
       )}
     </>
