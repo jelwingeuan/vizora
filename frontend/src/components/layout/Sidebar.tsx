@@ -1,12 +1,15 @@
+import type { BackendConnectionStatus } from '../../types/api'
 import type { WorkspaceSection } from '../../types/navigation'
 
 type SidebarProps = {
   activeSection: WorkspaceSection
+  backendStatus: BackendConnectionStatus
   onNavigate: (section: WorkspaceSection) => void
 }
 
 export function Sidebar({
   activeSection,
+  backendStatus,
   onNavigate,
 }: SidebarProps) {
   return (
@@ -77,10 +80,34 @@ export function Sidebar({
         </nav>
       </div>
 
-      <div className="sidebar-footer">
-        <div className="status-dot" />
-        <span>Local workspace</span>
+      <div
+        className="sidebar-footer"
+        aria-live="polite"
+      >
+        <div
+          className={`status-dot status-dot-${backendStatus}`}
+        />
+
+        <span>
+          {getBackendStatusLabel(backendStatus)}
+        </span>
       </div>
     </aside>
   )
+}
+
+function getBackendStatusLabel(
+  status: BackendConnectionStatus,
+) {
+  switch (status) {
+    case 'connected':
+      return 'API connected'
+
+    case 'offline':
+      return 'API offline'
+
+    case 'checking':
+    default:
+      return 'Connecting...'
+  }
 }

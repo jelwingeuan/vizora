@@ -201,11 +201,49 @@
   width: 6px;
   height: 6px;
 
+  flex-shrink: 0;
+
   border-radius: 50%;
 
+  background: #626773;
+
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.status-dot-checking {
+  background: #8f78ff;
+
+  box-shadow:
+    0 0 9px rgba(143, 120, 255, 0.45);
+
+  animation: status-pulse 1.4s ease-in-out infinite;
+}
+
+.status-dot-connected {
   background: #55d89d;
 
-  box-shadow: 0 0 9px rgba(85, 216, 157, 0.5);
+  box-shadow:
+    0 0 9px rgba(85, 216, 157, 0.5);
+}
+
+.status-dot-offline {
+  background: #d96d78;
+
+  box-shadow:
+    0 0 9px rgba(217, 109, 120, 0.35);
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ========================================

@@ -12,10 +12,13 @@ import { TopBar } from './TopBar'
 
 import { mockImages } from '../../data/mockImages'
 
+import { getHealth } from '../../services/api'
+
 import {
   createVisualReferenceFromFile,
 } from '../../utils/imageFiles'
 
+import type { BackendConnectionStatus } from '../../types/api'
 import type { VisualReference } from '../../types/image'
 import type { WorkspaceSection } from '../../types/navigation'
 
@@ -28,6 +31,39 @@ const sectionTitles: Record<WorkspaceSection, string> = {
 export function AppLayout() {
   const [activeSection, setActiveSection] =
     useState<WorkspaceSection>('library')
+
+  const [backendStatus, setBackendStatus] =
+    useState<BackendConnectionStatus>('checking')
+
+  useEffect(() => {
+    let isCancelled = false
+
+    async function checkBackend() {
+      try {
+        const health = await getHealth()
+
+        if (isCancelled) {
+          return
+        }
+
+        setBackendStatus(
+          health.status === 'ok'
+            ? 'connected'
+            : 'offline',
+        )
+      } catch {
+        if (!isCancelled) {
+          setBackendStatus('offline')
+        }
+      }
+    }
+
+    void checkBackend()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
 
   function renderWorkspace() {
     switch (activeSection) {
@@ -47,6 +83,7 @@ export function AppLayout() {
     <div className="app-shell">
       <Sidebar
         activeSection={activeSection}
+        backendStatus={backendStatus}
         onNavigate={setActiveSection}
       />
 
@@ -252,7 +289,10 @@ function BoardsWorkspace() {
         aria-label="Boards workspace"
       >
         <div className="section-placeholder-content">
-          <div className="section-placeholder-icon" aria-hidden="true">
+          <div
+            className="section-placeholder-icon"
+            aria-hidden="true"
+          >
             <svg viewBox="0 0 24 24">
               <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h4l2 2h5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" />
             </svg>
@@ -295,7 +335,10 @@ function DiscoverWorkspace() {
         aria-label="Discover workspace"
       >
         <div className="section-placeholder-content">
-          <div className="section-placeholder-icon" aria-hidden="true">
+          <div
+            className="section-placeholder-icon"
+            aria-hidden="true"
+          >
             <svg viewBox="0 0 24 24">
               <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" />
               <path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z" />
