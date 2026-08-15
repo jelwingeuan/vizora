@@ -1,23 +1,18 @@
-from datetime import datetime, timezone
-from uuid import uuid4
+from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
 
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 class Image(Base):
     __tablename__ = "images"
 
-    id: Mapped[str] = mapped_column(
-        String(36),
+    id: Mapped[int] = mapped_column(
+        Integer,
         primary_key=True,
-        default=lambda: str(uuid4()),
+        index=True,
     )
 
     title: Mapped[str] = mapped_column(
@@ -25,15 +20,21 @@ class Image(Base):
         nullable=False,
     )
 
-    file_name: Mapped[str] = mapped_column(
+    original_filename: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
     )
 
-    file_path: Mapped[str] = mapped_column(
-        String(1024),
-        nullable=False,
+    stored_filename: Mapped[str] = mapped_column(
+        String(255),
         unique=True,
+        nullable=False,
+    )
+
+    storage_path: Mapped[str] = mapped_column(
+        String(500),
+        unique=True,
+        nullable=False,
     )
 
     mime_type: Mapped[str] = mapped_column(
@@ -56,27 +57,27 @@ class Image(Base):
         nullable=False,
     )
 
-    alt_text: Mapped[str | None] = mapped_column(
-        String(500),
-        nullable=True,
-    )
-
     source: Mapped[str] = mapped_column(
         String(50),
-        nullable=False,
         default="upload",
+        nullable=False,
+    )
+
+    is_favorite: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
         nullable=False,
-        default=utc_now,
-        index=True,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
-        default=utc_now,
-        onupdate=utc_now,
     )
