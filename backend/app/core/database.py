@@ -48,6 +48,8 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def initialize_database() -> None:
+    import app.models  # noqa: F401
+
     Base.metadata.create_all(bind=engine)
 
     with engine.connect() as connection:
