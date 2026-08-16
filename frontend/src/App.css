@@ -1551,6 +1551,175 @@
   }
 }
 
+.ai-analyze-button {
+  padding: 8px 11px;
+
+  border: 1px solid rgba(143, 112, 255, 0.2);
+  border-radius: 9px;
+
+  background: rgba(126, 92, 255, 0.09);
+
+  color: #ad9eff;
+
+  font-size: 9px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+  .ai-analyze-button:hover:not(:disabled) {
+    color: #e0daff;
+
+    background: rgba(126, 92, 255, 0.15);
+
+    border-color: rgba(143, 112, 255, 0.32);
+  }
+
+  .ai-analyze-button:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+
+  .ai-status-complete {
+    color: #55d89d;
+
+    border-color: rgba(85, 216, 157, 0.15);
+
+    background: rgba(85, 216, 157, 0.06);
+  }
+
+  .ai-analysis-error {
+    margin: 17px 0 0;
+
+    padding: 10px 12px;
+
+    border: 1px solid rgba(217, 109, 120, 0.15);
+    border-radius: 10px;
+
+    background: rgba(217, 109, 120, 0.05);
+
+    color: #d9828c;
+
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .ai-analysis-content {
+    display: flex;
+    flex-direction: column;
+
+    gap: 18px;
+
+    margin-top: 20px;
+  }
+
+  .ai-analysis-summary {
+    margin: 0;
+
+    padding: 14px;
+
+    border: 1px solid rgba(143, 112, 255, 0.09);
+    border-radius: 13px;
+
+    background: rgba(126, 92, 255, 0.035);
+
+    color: #aaaeb8;
+
+    font-size: 11px;
+    line-height: 1.65;
+  }
+
+  .ai-analysis-item {
+    padding-bottom: 17px;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  }
+
+  .ai-analysis-item:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .ai-analysis-item > span {
+    display: block;
+
+    margin-bottom: 9px;
+
+    color: #5f6470;
+
+    font-size: 9px;
+    font-weight: 650;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .ai-analysis-item p {
+    margin: 0;
+
+    color: #9a9fab;
+
+    font-size: 11px;
+    line-height: 1.65;
+  }
+
+  .ai-analysis-values {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 6px;
+  }
+
+  .ai-analysis-values span {
+    padding: 5px 8px;
+
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, 0.025);
+
+    color: #858b97;
+
+    font-size: 9px;
+  }
+
+  .ai-color-palette {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 12px;
+  }
+
+  .ai-color {
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+  }
+
+  .ai-color-swatch {
+    width: 42px;
+    height: 42px;
+
+    display: block;
+
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+
+  .ai-color small {
+    color: #5f6470;
+
+    font-size: 8px;
+
+    text-transform: uppercase;
+  }
+
 /* ========================================
    Responsive
 ======================================== */

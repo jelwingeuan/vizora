@@ -12,12 +12,14 @@ import { TopBar } from './TopBar'
 
 import { mockImages } from '../../data/mockImages'
 
+import { analyzeImage } from '../../services/aiService'
 import { getHealth } from '../../services/api'
 
 import {
   createVisualReferenceFromFile,
 } from '../../utils/imageFiles'
 
+import type { ImageAnalysis } from '../../types/analysis'
 import type { BackendConnectionStatus } from '../../types/api'
 import type { VisualReference } from '../../types/image'
 import type { WorkspaceSection } from '../../types/navigation'
@@ -105,6 +107,9 @@ function LibraryWorkspace() {
   const [uploadedImages, setUploadedImages] =
     useState<VisualReference[]>([])
 
+  const [imageAnalyses, setImageAnalyses] =
+    useState<Record<string, ImageAnalysis>>({})
+
   const objectUrlsRef =
     useRef<string[]>([])
 
@@ -113,15 +118,18 @@ function LibraryWorkspace() {
     ...mockImages,
   ]
 
-  useEffect(() => {
-    return () => {
-      objectUrlsRef.current.forEach(
-        (objectUrl) => {
-          URL.revokeObjectURL(objectUrl)
-        },
-      )
-    }
-  }, [])
+    useEffect(() => {
+      const objectUrls =
+        objectUrlsRef.current
+
+      return () => {
+        objectUrls.forEach(
+          (objectUrl) => {
+            URL.revokeObjectURL(objectUrl)
+          },
+        )
+      }
+    }, [])
 
   async function handleUploadFiles(
     files: File[],
@@ -153,6 +161,20 @@ function LibraryWorkspace() {
       ...newImages,
       ...currentImages,
     ])
+  }
+
+  async function handleAnalyzeImage(
+    image: VisualReference,
+  ) {
+    const analysis =
+      await analyzeImage(image)
+
+    setImageAnalyses(
+      (currentAnalyses) => ({
+        ...currentAnalyses,
+        [image.id]: analysis,
+      }),
+    )
   }
 
   return (
@@ -259,6 +281,10 @@ function LibraryWorkspace() {
       {selectedImage && (
         <ImageDetailPanel
           image={selectedImage}
+          analysis={
+            imageAnalyses[selectedImage.id]
+          }
+          onAnalyze={handleAnalyzeImage}
           onClose={() =>
             setSelectedImage(null)
           }

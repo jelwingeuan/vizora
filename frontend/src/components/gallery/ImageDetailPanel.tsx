@@ -1,29 +1,74 @@
-import { useEffect } from 'react'
+import {
+  useEffect,
+  useState,
+} from 'react'
 
+import type { ImageAnalysis } from '../../types/analysis'
 import type { VisualReference } from '../../types/image'
 
 type ImageDetailPanelProps = {
   image: VisualReference
+
+  analysis?: ImageAnalysis
+
+  onAnalyze: (
+    image: VisualReference,
+  ) => Promise<void>
+
   onClose: () => void
 }
 
 export function ImageDetailPanel({
   image,
+  analysis,
+  onAnalyze,
   onClose,
 }: ImageDetailPanelProps) {
+  const [isAnalyzing, setIsAnalyzing] =
+    useState(false)
+
+  const [analysisError, setAnalysisError] =
+    useState<string | null>(null)
+
   useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
+    function handleKeyDown(
+      event: KeyboardEvent,
+    ) {
       if (event.key === 'Escape') {
         onClose()
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener(
+      'keydown',
+      handleKeyDown,
+    )
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      )
     }
   }, [onClose])
+
+
+  async function handleAnalyze() {
+    setIsAnalyzing(true)
+    setAnalysisError(null)
+
+    try {
+      await onAnalyze(image)
+    } catch (error) {
+      setAnalysisError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to analyze image.',
+      )
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
 
   return (
     <div
@@ -36,7 +81,9 @@ export function ImageDetailPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby="image-detail-title"
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) =>
+          event.stopPropagation()
+        }
       >
         <header className="detail-panel-header">
           <div>
@@ -56,7 +103,10 @@ export function ImageDetailPanel({
             onClick={onClose}
             autoFocus
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
               <path d="M6 6l12 12" />
               <path d="M18 6 6 18" />
             </svg>
@@ -67,7 +117,8 @@ export function ImageDetailPanel({
           <div
             className="detail-preview"
             style={{
-              aspectRatio: `${image.width} / ${image.height}`,
+              aspectRatio:
+                `${image.width} / ${image.height}`,
             }}
           >
             <img
@@ -82,7 +133,8 @@ export function ImageDetailPanel({
             </h2>
 
             <p>
-              Visual reference saved in your VIZORA library.
+              Visual reference saved in your
+              VIZORA library.
             </p>
           </section>
 
@@ -137,48 +189,73 @@ export function ImageDetailPanel({
                   VIZORA Intelligence
                 </span>
 
-                <span className="ai-status">
-                  Not analyzed
+                <span
+                  className={
+                    analysis
+                      ? 'ai-status ai-status-complete'
+                      : 'ai-status'
+                  }
+                >
+                  {analysis
+                    ? 'Analyzed'
+                    : 'Not analyzed'}
                 </span>
               </div>
 
-              <div
-                className="ai-spark-icon"
-                aria-hidden="true"
+              <button
+                className="ai-analyze-button"
+                type="button"
+                disabled={isAnalyzing}
+                onClick={() => {
+                  void handleAnalyze()
+                }}
               >
-                <svg viewBox="0 0 24 24">
-                  <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" />
-                  <path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z" />
-                </svg>
-              </div>
+                {isAnalyzing
+                  ? 'Analyzing...'
+                  : analysis
+                    ? 'Analyze again'
+                    : 'Analyze image'}
+              </button>
             </div>
 
-            <div className="ai-analysis-placeholder">
-              <div className="ai-placeholder-row">
-                <span>Style</span>
-                <div />
-              </div>
-
-              <div className="ai-placeholder-row">
-                <span>Mood</span>
-                <div />
-              </div>
-
-              <div className="ai-placeholder-row">
-                <span>Lighting</span>
-                <div />
-              </div>
-
-              <div className="ai-placeholder-row">
-                <span>Composition</span>
-                <div />
-              </div>
-
-              <p>
-                AI-generated visual insights will appear here once
-                image analysis is connected.
+            {analysisError && (
+              <p className="ai-analysis-error">
+                {analysisError}
               </p>
-            </div>
+            )}
+
+            {analysis ? (
+              <AIAnalysisView
+                analysis={analysis}
+              />
+            ) : (
+              <div className="ai-analysis-placeholder">
+                <div className="ai-placeholder-row">
+                  <span>Style</span>
+                  <div />
+                </div>
+
+                <div className="ai-placeholder-row">
+                  <span>Mood</span>
+                  <div />
+                </div>
+
+                <div className="ai-placeholder-row">
+                  <span>Lighting</span>
+                  <div />
+                </div>
+
+                <div className="ai-placeholder-row">
+                  <span>Composition</span>
+                  <div />
+                </div>
+
+                <p>
+                  Analyze this reference to
+                  generate visual intelligence.
+                </p>
+              </div>
+            )}
           </section>
         </div>
       </aside>
@@ -186,7 +263,108 @@ export function ImageDetailPanel({
   )
 }
 
-function getOrientation(image: VisualReference) {
+type AIAnalysisViewProps = {
+  analysis: ImageAnalysis
+}
+
+function AIAnalysisView({
+  analysis,
+}: AIAnalysisViewProps) {
+  return (
+    <div className="ai-analysis-content">
+      <p className="ai-analysis-summary">
+        {analysis.summary}
+      </p>
+
+      <div className="ai-analysis-item">
+        <span>Subject</span>
+        <p>{analysis.subject}</p>
+      </div>
+
+      <div className="ai-analysis-item">
+        <span>Style</span>
+
+        <div className="ai-analysis-values">
+          {analysis.style.map((value) => (
+            <span key={value}>
+              {value}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="ai-analysis-item">
+        <span>Mood</span>
+
+        <div className="ai-analysis-values">
+          {analysis.mood.map((value) => (
+            <span key={value}>
+              {value}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="ai-analysis-item">
+        <span>Lighting</span>
+        <p>{analysis.lighting}</p>
+      </div>
+
+      <div className="ai-analysis-item">
+        <span>Composition</span>
+        <p>{analysis.composition}</p>
+      </div>
+
+      <div className="ai-analysis-item">
+        <span>Color palette</span>
+
+        <div className="ai-color-palette">
+          {analysis.color_palette.map(
+            (color) => (
+              <div
+                key={color}
+                className="ai-color"
+              >
+                <span
+                  className="ai-color-swatch"
+                  style={{
+                    backgroundColor: color,
+                  }}
+                />
+
+                <small>{color}</small>
+              </div>
+            ),
+          )}
+        </div>
+      </div>
+
+      <div className="ai-analysis-item">
+        <span>AI tags</span>
+
+        <div className="ai-analysis-values">
+          {analysis.tags.map((tag) => (
+            <span key={tag}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="ai-analysis-item">
+        <span>Creative notes</span>
+
+        <p>
+          {analysis.creative_notes}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function getOrientation(
+  image: VisualReference,
+) {
   if (image.width === image.height) {
     return 'Square'
   }
