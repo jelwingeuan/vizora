@@ -31,7 +31,17 @@ Provide:
 - A concise lighting description.
 - A concise composition description.
 - 4 to 6 representative hexadecimal color values.
-- 5 to 10 useful searchable tags.
+- 6 to 10 concise searchable tags.
+
+Tag rules:
+- Use lowercase.
+- Prefer 1 to 3 words per tag.
+- Do not use hashtags.
+- Do not repeat tags.
+- Prefer visually useful concepts such as subject, style,
+  mood, lighting, environment, material, composition,
+  color, era, and medium when they are clearly visible.
+
 - A short creative note explaining how this reference could
   be useful in a visual project.
 

@@ -19,6 +19,10 @@ import {
   createVisualReferenceFromFile,
 } from '../../utils/imageFiles'
 
+import {
+  mergeImageTags,
+} from '../../utils/tags'
+
 import type { ImageAnalysis } from '../../types/analysis'
 import type { BackendConnectionStatus } from '../../types/api'
 import type { VisualReference } from '../../types/image'
@@ -90,7 +94,9 @@ export function AppLayout() {
       />
 
       <div className="app-main">
-        <TopBar title={sectionTitles[activeSection]} />
+        <TopBar
+          title={sectionTitles[activeSection]}
+        />
 
         <main className="workspace">
           {renderWorkspace()}
@@ -113,23 +119,42 @@ function LibraryWorkspace() {
   const objectUrlsRef =
     useRef<string[]>([])
 
-  const images = [
+  const baseImages = [
     ...uploadedImages,
     ...mockImages,
   ]
 
-    useEffect(() => {
-      const objectUrls =
-        objectUrlsRef.current
+  const images = baseImages.map(
+    (image) =>
+      applyAnalysisTags(
+        image,
+        imageAnalyses[image.id]?.tags,
+      ),
+  )
 
-      return () => {
-        objectUrls.forEach(
-          (objectUrl) => {
-            URL.revokeObjectURL(objectUrl)
-          },
+  const selectedImageWithTags =
+    selectedImage
+      ? applyAnalysisTags(
+          baseImages.find(
+            (image) =>
+              image.id === selectedImage.id,
+          ) ?? selectedImage,
+          imageAnalyses[selectedImage.id]?.tags,
         )
-      }
-    }, [])
+      : null
+
+  useEffect(() => {
+    const objectUrls =
+      objectUrlsRef.current
+
+    return () => {
+      objectUrls.forEach(
+        (objectUrl) => {
+          URL.revokeObjectURL(objectUrl)
+        },
+      )
+    }
+  }, [])
 
   async function handleUploadFiles(
     files: File[],
@@ -154,13 +179,17 @@ function LibraryWorkspace() {
     }
 
     objectUrlsRef.current.push(
-      ...newImages.map((image) => image.src),
+      ...newImages.map(
+        (image) => image.src,
+      ),
     )
 
-    setUploadedImages((currentImages) => [
-      ...newImages,
-      ...currentImages,
-    ])
+    setUploadedImages(
+      (currentImages) => [
+        ...newImages,
+        ...currentImages,
+      ],
+    )
   }
 
   async function handleAnalyzeImage(
@@ -274,15 +303,19 @@ function LibraryWorkspace() {
 
       <ImageGrid
         images={images}
-        selectedImageId={selectedImage?.id}
+        selectedImageId={
+          selectedImage?.id
+        }
         onSelectImage={setSelectedImage}
       />
 
-      {selectedImage && (
+      {selectedImageWithTags && (
         <ImageDetailPanel
-          image={selectedImage}
+          image={selectedImageWithTags}
           analysis={
-            imageAnalyses[selectedImage.id]
+            imageAnalyses[
+              selectedImageWithTags.id
+            ]
           }
           onAnalyze={handleAnalyzeImage}
           onClose={() =>
@@ -302,11 +335,15 @@ function BoardsWorkspace() {
           Organize your inspiration
         </span>
 
-        <h1>Shape references into boards.</h1>
+        <h1>
+          Shape references into boards.
+        </h1>
 
         <p>
-          Boards will let you group images and ideas around projects,
-          styles, characters, environments, and creative directions.
+          Boards will let you group images
+          and ideas around projects, styles,
+          characters, environments, and
+          creative directions.
         </p>
       </section>
 
@@ -331,8 +368,9 @@ function BoardsWorkspace() {
           <h2>No boards yet.</h2>
 
           <p>
-            Your project boards will live here once board creation is
-            added to VIZORA.
+            Your project boards will live
+            here once board creation is added
+            to VIZORA.
           </p>
         </div>
       </section>
@@ -348,11 +386,15 @@ function DiscoverWorkspace() {
           AI-powered discovery
         </span>
 
-        <h1>Rediscover what inspires you.</h1>
+        <h1>
+          Rediscover what inspires you.
+        </h1>
 
         <p>
-          Discover will eventually use visual intelligence and semantic
-          search to surface useful references from your library.
+          Discover will eventually use visual
+          intelligence and semantic search to
+          surface useful references from your
+          library.
         </p>
       </section>
 
@@ -378,11 +420,26 @@ function DiscoverWorkspace() {
           <h2>Discovery is coming.</h2>
 
           <p>
-            Semantic search, visual similarity, and AI-assisted
-            discovery will appear here later.
+            Semantic search, visual similarity,
+            and AI-assisted discovery will
+            appear here later.
           </p>
         </div>
       </section>
     </>
   )
+}
+
+function applyAnalysisTags(
+  image: VisualReference,
+  generatedTags: string[] = [],
+): VisualReference {
+  return {
+    ...image,
+
+    tags: mergeImageTags(
+      generatedTags,
+      image.tags,
+    ),
+  }
 }

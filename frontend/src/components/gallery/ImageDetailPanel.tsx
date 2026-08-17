@@ -6,6 +6,10 @@ import {
 import type { ImageAnalysis } from '../../types/analysis'
 import type { VisualReference } from '../../types/image'
 
+import {
+  normalizeImageTag,
+} from '../../utils/tags'
+
 type ImageDetailPanelProps = {
   image: VisualReference
 
@@ -51,7 +55,6 @@ export function ImageDetailPanel({
       )
     }
   }, [onClose])
-
 
   async function handleAnalyze() {
     setIsAnalyzing(true)
@@ -163,7 +166,9 @@ export function ImageDetailPanel({
               <div>
                 <dt>Reference ID</dt>
 
-                <dd>{image.id}</dd>
+                <dd>
+                  {image.id}
+                </dd>
               </div>
             </dl>
           </section>
@@ -174,11 +179,29 @@ export function ImageDetailPanel({
             </span>
 
             <div className="detail-tags">
-              {image.tags.map((tag) => (
-                <span key={tag}>
-                  {tag}
-                </span>
-              ))}
+              {image.tags.map((tag) => {
+                const isAITag =
+                  analysis?.tags.some(
+                    (generatedTag) =>
+                      normalizeImageTag(
+                        generatedTag,
+                      ) ===
+                      normalizeImageTag(tag),
+                  ) ?? false
+
+                return (
+                  <span
+                    key={tag}
+                    className={
+                      isAITag
+                        ? 'detail-tag-ai'
+                        : undefined
+                    }
+                  >
+                    {tag}
+                  </span>
+                )
+              })}
             </div>
           </section>
 
@@ -231,22 +254,34 @@ export function ImageDetailPanel({
             ) : (
               <div className="ai-analysis-placeholder">
                 <div className="ai-placeholder-row">
-                  <span>Style</span>
+                  <span>
+                    Style
+                  </span>
+
                   <div />
                 </div>
 
                 <div className="ai-placeholder-row">
-                  <span>Mood</span>
+                  <span>
+                    Mood
+                  </span>
+
                   <div />
                 </div>
 
                 <div className="ai-placeholder-row">
-                  <span>Lighting</span>
+                  <span>
+                    Lighting
+                  </span>
+
                   <div />
                 </div>
 
                 <div className="ai-placeholder-row">
-                  <span>Composition</span>
+                  <span>
+                    Composition
+                  </span>
+
                   <div />
                 </div>
 
@@ -277,46 +312,71 @@ function AIAnalysisView({
       </p>
 
       <div className="ai-analysis-item">
-        <span>Subject</span>
-        <p>{analysis.subject}</p>
+        <span>
+          Subject
+        </span>
+
+        <p>
+          {analysis.subject}
+        </p>
       </div>
 
       <div className="ai-analysis-item">
-        <span>Style</span>
+        <span>
+          Style
+        </span>
 
         <div className="ai-analysis-values">
-          {analysis.style.map((value) => (
-            <span key={value}>
-              {value}
-            </span>
-          ))}
+          {analysis.style.map(
+            (value) => (
+              <span key={value}>
+                {value}
+              </span>
+            ),
+          )}
         </div>
       </div>
 
       <div className="ai-analysis-item">
-        <span>Mood</span>
+        <span>
+          Mood
+        </span>
 
         <div className="ai-analysis-values">
-          {analysis.mood.map((value) => (
-            <span key={value}>
-              {value}
-            </span>
-          ))}
+          {analysis.mood.map(
+            (value) => (
+              <span key={value}>
+                {value}
+              </span>
+            ),
+          )}
         </div>
       </div>
 
       <div className="ai-analysis-item">
-        <span>Lighting</span>
-        <p>{analysis.lighting}</p>
+        <span>
+          Lighting
+        </span>
+
+        <p>
+          {analysis.lighting}
+        </p>
       </div>
 
       <div className="ai-analysis-item">
-        <span>Composition</span>
-        <p>{analysis.composition}</p>
+        <span>
+          Composition
+        </span>
+
+        <p>
+          {analysis.composition}
+        </p>
       </div>
 
       <div className="ai-analysis-item">
-        <span>Color palette</span>
+        <span>
+          Color palette
+        </span>
 
         <div className="ai-color-palette">
           {analysis.color_palette.map(
@@ -332,7 +392,9 @@ function AIAnalysisView({
                   }}
                 />
 
-                <small>{color}</small>
+                <small>
+                  {color}
+                </small>
               </div>
             ),
           )}
@@ -340,19 +402,25 @@ function AIAnalysisView({
       </div>
 
       <div className="ai-analysis-item">
-        <span>AI tags</span>
+        <span>
+          AI tags
+        </span>
 
         <div className="ai-analysis-values">
-          {analysis.tags.map((tag) => (
-            <span key={tag}>
-              {tag}
-            </span>
-          ))}
+          {analysis.tags.map(
+            (tag) => (
+              <span key={tag}>
+                {tag}
+              </span>
+            ),
+          )}
         </div>
       </div>
 
       <div className="ai-analysis-item">
-        <span>Creative notes</span>
+        <span>
+          Creative notes
+        </span>
 
         <p>
           {analysis.creative_notes}
