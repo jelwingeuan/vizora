@@ -41,6 +41,15 @@ export function AppLayout() {
   const [backendStatus, setBackendStatus] =
     useState<BackendConnectionStatus>('checking')
 
+  const [uploadedImages, setUploadedImages] =
+    useState<VisualReference[]>([])
+
+  const [imageAnalyses, setImageAnalyses] =
+    useState<Record<string, ImageAnalysis>>({})
+
+  const objectUrlsRef =
+    useRef<string[]>([])
+
   useEffect(() => {
     let isCancelled = false
 
@@ -71,78 +80,6 @@ export function AppLayout() {
     }
   }, [])
 
-  function renderWorkspace() {
-    switch (activeSection) {
-      case 'boards':
-        return <BoardsWorkspace />
-
-      case 'discover':
-        return <DiscoverWorkspace />
-
-      case 'library':
-      default:
-        return <LibraryWorkspace />
-    }
-  }
-
-  return (
-    <div className="app-shell">
-      <Sidebar
-        activeSection={activeSection}
-        backendStatus={backendStatus}
-        onNavigate={setActiveSection}
-      />
-
-      <div className="app-main">
-        <TopBar
-          title={sectionTitles[activeSection]}
-        />
-
-        <main className="workspace">
-          {renderWorkspace()}
-        </main>
-      </div>
-    </div>
-  )
-}
-
-function LibraryWorkspace() {
-  const [selectedImage, setSelectedImage] =
-    useState<VisualReference | null>(null)
-
-  const [uploadedImages, setUploadedImages] =
-    useState<VisualReference[]>([])
-
-  const [imageAnalyses, setImageAnalyses] =
-    useState<Record<string, ImageAnalysis>>({})
-
-  const objectUrlsRef =
-    useRef<string[]>([])
-
-  const baseImages = [
-    ...uploadedImages,
-    ...mockImages,
-  ]
-
-  const images = baseImages.map(
-    (image) =>
-      applyAnalysisTags(
-        image,
-        imageAnalyses[image.id]?.tags,
-      ),
-  )
-
-  const selectedImageWithTags =
-    selectedImage
-      ? applyAnalysisTags(
-          baseImages.find(
-            (image) =>
-              image.id === selectedImage.id,
-          ) ?? selectedImage,
-          imageAnalyses[selectedImage.id]?.tags,
-        )
-      : null
-
   useEffect(() => {
     const objectUrls =
       objectUrlsRef.current
@@ -172,7 +109,9 @@ function LibraryWorkspace() {
         ): result is PromiseFulfilledResult<VisualReference> =>
           result.status === 'fulfilled',
       )
-      .map((result) => result.value)
+      .map(
+        (result) => result.value,
+      )
 
     if (newImages.length === 0) {
       return
@@ -201,10 +140,109 @@ function LibraryWorkspace() {
     setImageAnalyses(
       (currentAnalyses) => ({
         ...currentAnalyses,
+
         [image.id]: analysis,
       }),
     )
   }
+
+  function renderWorkspace() {
+    switch (activeSection) {
+      case 'boards':
+        return <BoardsWorkspace />
+
+      case 'discover':
+        return <DiscoverWorkspace />
+
+      case 'library':
+      default:
+        return (
+          <LibraryWorkspace
+            uploadedImages={uploadedImages}
+            imageAnalyses={imageAnalyses}
+            onUploadFiles={handleUploadFiles}
+            onAnalyzeImage={handleAnalyzeImage}
+          />
+        )
+    }
+  }
+
+  return (
+    <div className="app-shell">
+      <Sidebar
+        activeSection={activeSection}
+        backendStatus={backendStatus}
+        onNavigate={setActiveSection}
+      />
+
+      <div className="app-main">
+        <TopBar
+          title={
+            sectionTitles[activeSection]
+          }
+        />
+
+        <main className="workspace">
+          {renderWorkspace()}
+        </main>
+      </div>
+    </div>
+  )
+}
+
+type LibraryWorkspaceProps = {
+  uploadedImages: VisualReference[]
+
+  imageAnalyses: Record<
+    string,
+    ImageAnalysis
+  >
+
+  onUploadFiles: (
+    files: File[],
+  ) => Promise<void>
+
+  onAnalyzeImage: (
+    image: VisualReference,
+  ) => Promise<void>
+}
+
+function LibraryWorkspace({
+  uploadedImages,
+  imageAnalyses,
+  onUploadFiles,
+  onAnalyzeImage,
+}: LibraryWorkspaceProps) {
+  const [selectedImage, setSelectedImage] =
+    useState<VisualReference | null>(null)
+
+  const baseImages = [
+    ...uploadedImages,
+    ...mockImages,
+  ]
+
+  const images = baseImages.map(
+    (image) =>
+      applyAnalysisTags(
+        image,
+        imageAnalyses[image.id]?.tags,
+      ),
+  )
+
+  const selectedImageWithTags =
+    selectedImage
+      ? applyAnalysisTags(
+          baseImages.find(
+            (image) =>
+              image.id ===
+              selectedImage.id,
+          ) ?? selectedImage,
+
+          imageAnalyses[
+            selectedImage.id
+          ]?.tags,
+        )
+      : null
 
   return (
     <>
@@ -214,7 +252,9 @@ function LibraryWorkspace() {
             Visual intelligence workspace
           </span>
 
-          <h1>Library</h1>
+          <h1>
+            Library
+          </h1>
 
           <p>
             A visual collection of references,
@@ -298,7 +338,9 @@ function LibraryWorkspace() {
       </div>
 
       <ImageDropzone
-        onFilesSelected={handleUploadFiles}
+        onFilesSelected={
+          onUploadFiles
+        }
       />
 
       <ImageGrid
@@ -306,18 +348,24 @@ function LibraryWorkspace() {
         selectedImageId={
           selectedImage?.id
         }
-        onSelectImage={setSelectedImage}
+        onSelectImage={
+          setSelectedImage
+        }
       />
 
       {selectedImageWithTags && (
         <ImageDetailPanel
-          image={selectedImageWithTags}
+          image={
+            selectedImageWithTags
+          }
           analysis={
             imageAnalyses[
               selectedImageWithTags.id
             ]
           }
-          onAnalyze={handleAnalyzeImage}
+          onAnalyze={
+            onAnalyzeImage
+          }
           onClose={() =>
             setSelectedImage(null)
           }
@@ -365,7 +413,9 @@ function BoardsWorkspace() {
             Boards
           </span>
 
-          <h2>No boards yet.</h2>
+          <h2>
+            No boards yet.
+          </h2>
 
           <p>
             Your project boards will live
@@ -409,6 +459,7 @@ function DiscoverWorkspace() {
           >
             <svg viewBox="0 0 24 24">
               <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" />
+
               <path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z" />
             </svg>
           </div>
@@ -417,7 +468,9 @@ function DiscoverWorkspace() {
             Discover
           </span>
 
-          <h2>Discovery is coming.</h2>
+          <h2>
+            Discovery is coming.
+          </h2>
 
           <p>
             Semantic search, visual similarity,
