@@ -14,6 +14,7 @@ import { mockImages } from '../../data/mockImages'
 
 import { analyzeImage } from '../../services/aiService'
 import { getHealth } from '../../services/api'
+import { semanticSearch } from '../../services/searchService'
 
 import {
   createVisualReferenceFromFile,
@@ -27,6 +28,7 @@ import type { ImageAnalysis } from '../../types/analysis'
 import type { BackendConnectionStatus } from '../../types/api'
 import type { VisualReference } from '../../types/image'
 import type { WorkspaceSection } from '../../types/navigation'
+import type { SemanticSearchItem } from '../../types/search'
 
 const sectionTitles: Record<WorkspaceSection, string> = {
   library: 'Library',
@@ -39,13 +41,31 @@ export function AppLayout() {
     useState<WorkspaceSection>('library')
 
   const [backendStatus, setBackendStatus] =
-    useState<BackendConnectionStatus>('checking')
+    useState<BackendConnectionStatus>(
+      'checking',
+    )
 
   const [uploadedImages, setUploadedImages] =
     useState<VisualReference[]>([])
 
   const [imageAnalyses, setImageAnalyses] =
-    useState<Record<string, ImageAnalysis>>({})
+    useState<
+      Record<string, ImageAnalysis>
+    >({})
+
+  const [searchQuery, setSearchQuery] =
+    useState('')
+
+  const [
+    searchResultIds,
+    setSearchResultIds,
+  ] = useState<string[] | null>(null)
+
+  const [isSearching, setIsSearching] =
+    useState(false)
+
+  const [searchError, setSearchError] =
+    useState<string | null>(null)
 
   const objectUrlsRef =
     useRef<string[]>([])
@@ -129,6 +149,8 @@ export function AppLayout() {
         ...currentImages,
       ],
     )
+
+    setSearchResultIds(null)
   }
 
   async function handleAnalyzeImage(
@@ -144,6 +166,82 @@ export function AppLayout() {
         [image.id]: analysis,
       }),
     )
+
+    setSearchResultIds(null)
+  }
+
+  async function handleSemanticSearch() {
+    const query =
+      searchQuery.trim()
+
+    if (!query) {
+      setSearchResultIds(null)
+      setSearchError(null)
+
+      return
+    }
+
+    const images = [
+      ...uploadedImages,
+      ...mockImages,
+    ]
+
+    if (images.length === 0) {
+      return
+    }
+
+    const items: SemanticSearchItem[] =
+      images.map(
+        (image) => ({
+          id: image.id,
+          title: image.title,
+
+          text: buildSearchText(
+            image,
+            imageAnalyses[image.id],
+          ),
+        }),
+      )
+
+    setIsSearching(true)
+    setSearchError(null)
+
+    try {
+      const response =
+        await semanticSearch(
+          query,
+          items,
+        )
+
+      setSearchResultIds(
+        response.results.map(
+          (result) => result.id,
+        ),
+      )
+
+      setActiveSection(
+        'library',
+      )
+    } catch (error) {
+      setSearchError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to search references.',
+      )
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  function handleSearchQueryChange(
+    query: string,
+  ) {
+    setSearchQuery(query)
+
+    if (!query.trim()) {
+      setSearchResultIds(null)
+      setSearchError(null)
+    }
   }
 
   function renderWorkspace() {
@@ -158,10 +256,27 @@ export function AppLayout() {
       default:
         return (
           <LibraryWorkspace
-            uploadedImages={uploadedImages}
-            imageAnalyses={imageAnalyses}
-            onUploadFiles={handleUploadFiles}
-            onAnalyzeImage={handleAnalyzeImage}
+            uploadedImages={
+              uploadedImages
+            }
+            imageAnalyses={
+              imageAnalyses
+            }
+            searchResultIds={
+              searchResultIds
+            }
+            searchQuery={
+              searchQuery
+            }
+            searchError={
+              searchError
+            }
+            onUploadFiles={
+              handleUploadFiles
+            }
+            onAnalyzeImage={
+              handleAnalyzeImage
+            }
           />
         )
     }
@@ -178,7 +293,21 @@ export function AppLayout() {
       <div className="app-main">
         <TopBar
           title={
-            sectionTitles[activeSection]
+            sectionTitles[
+              activeSection
+            ]
+          }
+          searchQuery={
+            searchQuery
+          }
+          isSearching={
+            isSearching
+          }
+          onSearchQueryChange={
+            handleSearchQueryChange
+          }
+          onSearch={
+            handleSemanticSearch
           }
         />
 
@@ -198,6 +327,16 @@ type LibraryWorkspaceProps = {
     ImageAnalysis
   >
 
+  searchResultIds:
+    | string[]
+    | null
+
+  searchQuery: string
+
+  searchError:
+    | string
+    | null
+
   onUploadFiles: (
     files: File[],
   ) => Promise<void>
@@ -210,24 +349,53 @@ type LibraryWorkspaceProps = {
 function LibraryWorkspace({
   uploadedImages,
   imageAnalyses,
+  searchResultIds,
+  searchQuery,
+  searchError,
   onUploadFiles,
   onAnalyzeImage,
 }: LibraryWorkspaceProps) {
-  const [selectedImage, setSelectedImage] =
-    useState<VisualReference | null>(null)
+  const [
+    selectedImage,
+    setSelectedImage,
+  ] =
+    useState<VisualReference | null>(
+      null,
+    )
 
   const baseImages = [
     ...uploadedImages,
     ...mockImages,
   ]
 
-  const images = baseImages.map(
-    (image) =>
-      applyAnalysisTags(
-        image,
-        imageAnalyses[image.id]?.tags,
-      ),
-  )
+  const images =
+    baseImages.map(
+      (image) =>
+        applyAnalysisTags(
+          image,
+          imageAnalyses[
+            image.id
+          ]?.tags,
+        ),
+    )
+
+  const visibleImages =
+    searchResultIds
+      ? searchResultIds
+          .map(
+            (id) =>
+              images.find(
+                (image) =>
+                  image.id === id,
+              ),
+          )
+          .filter(
+            (
+              image,
+            ): image is VisualReference =>
+              Boolean(image),
+          )
+      : images
 
   const selectedImageWithTags =
     selectedImage
@@ -257,17 +425,34 @@ function LibraryWorkspace({
           </h1>
 
           <p>
-            A visual collection of references,
-            ideas, moods, and creative directions.
+            {searchResultIds
+              ? (
+                  `Semantic results for “${searchQuery}”.`
+                )
+              : (
+                  'A visual collection of references, ideas, moods, and creative directions.'
+                )}
           </p>
         </div>
 
         <div className="library-header-meta">
           <span>
-            {images.length} references
+            {visibleImages.length}{' '}
+            {searchResultIds
+              ? 'results'
+              : 'references'}
           </span>
         </div>
       </section>
+
+      {searchError && (
+        <p
+          className="semantic-search-error"
+          role="alert"
+        >
+          {searchError}
+        </p>
+      )}
 
       <div className="library-toolbar">
         <div className="library-filter-group">
@@ -344,7 +529,9 @@ function LibraryWorkspace({
       />
 
       <ImageGrid
-        images={images}
+        images={
+          visibleImages
+        }
         selectedImageId={
           selectedImage?.id
         }
@@ -495,4 +682,28 @@ function applyAnalysisTags(
       image.tags,
     ),
   }
+}
+
+function buildSearchText(
+  image: VisualReference,
+  analysis?: ImageAnalysis,
+) {
+  const sections = [
+    `Tags: ${image.tags.join(', ')}`,
+  ]
+
+  if (analysis) {
+    sections.push(
+      `Summary: ${analysis.summary}`,
+      `Subject: ${analysis.subject}`,
+      `Style: ${analysis.style.join(', ')}`,
+      `Mood: ${analysis.mood.join(', ')}`,
+      `Lighting: ${analysis.lighting}`,
+      `Composition: ${analysis.composition}`,
+      `AI tags: ${analysis.tags.join(', ')}`,
+      `Creative notes: ${analysis.creative_notes}`,
+    )
+  }
+
+  return sections.join('\n')
 }

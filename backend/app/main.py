@@ -1,10 +1,19 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import (
+    CORSMiddleware,
+)
 
-from app.core.database import initialize_database
-from app.routers import ai, health
+from app.core.database import (
+    initialize_database,
+)
+
+from app.routers import (
+    ai,
+    health,
+    search,
+)
 
 
 @asynccontextmanager
@@ -40,11 +49,23 @@ app.add_middleware(
 )
 
 
-app.include_router(health.router)
-app.include_router(ai.router)
+app.include_router(
+    health.router,
+)
+
+app.include_router(
+    ai.router,
+)
+
+app.include_router(
+    search.router,
+)
 
 
-@app.get("/", tags=["system"])
+@app.get(
+    "/",
+    tags=["system"],
+)
 async def root():
     return {
         "name": "VIZORA API",
