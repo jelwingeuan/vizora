@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
 from fastapi.middleware.cors import (
     CORSMiddleware,
 )
@@ -11,6 +12,7 @@ from app.core.database import (
 
 from app.routers import (
     ai,
+    embeddings,
     health,
     search,
 )
@@ -59,6 +61,10 @@ app.include_router(
 
 app.include_router(
     search.router,
+)
+
+app.include_router(
+    embeddings.router,
 )
 
 
