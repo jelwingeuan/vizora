@@ -14,11 +14,16 @@ import { mockImages } from '../../data/mockImages'
 
 import { analyzeImage } from '../../services/aiService'
 import { getHealth } from '../../services/api'
+import { embedImage } from '../../services/embeddingService'
 import { semanticSearch } from '../../services/searchService'
 
 import {
   createVisualReferenceFromFile,
 } from '../../utils/imageFiles'
+
+import {
+  rankSimilarImages,
+} from '../../utils/similarity'
 
 import {
   mergeImageTags,
@@ -67,15 +72,29 @@ export function AppLayout() {
   const [searchError, setSearchError] =
     useState<string | null>(null)
 
+  const [
+    similarImageIds,
+    setSimilarImageIds,
+  ] = useState<string[] | null>(null)
+
+  const [
+    similarSourceTitle,
+    setSimilarSourceTitle,
+  ] = useState<string | null>(null)
+
   const objectUrlsRef =
     useRef<string[]>([])
+
+  const imageEmbeddingCacheRef =
+    useRef<Record<string, number[]>>({})
 
   useEffect(() => {
     let isCancelled = false
 
     async function checkBackend() {
       try {
-        const health = await getHealth()
+        const health =
+          await getHealth()
 
         if (isCancelled) {
           return
@@ -88,7 +107,9 @@ export function AppLayout() {
         )
       } catch {
         if (!isCancelled) {
-          setBackendStatus('offline')
+          setBackendStatus(
+            'offline',
+          )
         }
       }
     }
@@ -107,7 +128,9 @@ export function AppLayout() {
     return () => {
       objectUrls.forEach(
         (objectUrl) => {
-          URL.revokeObjectURL(objectUrl)
+          URL.revokeObjectURL(
+            objectUrl,
+          )
         },
       )
     }
@@ -116,21 +139,24 @@ export function AppLayout() {
   async function handleUploadFiles(
     files: File[],
   ) {
-    const results = await Promise.allSettled(
-      files.map(
-        createVisualReferenceFromFile,
-      ),
-    )
+    const results =
+      await Promise.allSettled(
+        files.map(
+          createVisualReferenceFromFile,
+        ),
+      )
 
     const newImages = results
       .filter(
         (
           result,
         ): result is PromiseFulfilledResult<VisualReference> =>
-          result.status === 'fulfilled',
+          result.status ===
+          'fulfilled',
       )
       .map(
-        (result) => result.value,
+        (result) =>
+          result.value,
       )
 
     if (newImages.length === 0) {
@@ -139,7 +165,8 @@ export function AppLayout() {
 
     objectUrlsRef.current.push(
       ...newImages.map(
-        (image) => image.src,
+        (image) =>
+          image.src,
       ),
     )
 
@@ -150,7 +177,7 @@ export function AppLayout() {
       ],
     )
 
-    setSearchResultIds(null)
+    clearDiscoveryResults()
   }
 
   async function handleAnalyzeImage(
@@ -163,11 +190,12 @@ export function AppLayout() {
       (currentAnalyses) => ({
         ...currentAnalyses,
 
-        [image.id]: analysis,
+        [image.id]:
+          analysis,
       }),
     )
 
-    setSearchResultIds(null)
+    clearDiscoveryResults()
   }
 
   async function handleSemanticSearch() {
@@ -190,7 +218,8 @@ export function AppLayout() {
       return
     }
 
-    const items: SemanticSearchItem[] =
+    const items:
+      SemanticSearchItem[] =
       images.map(
         (image) => ({
           id: image.id,
@@ -198,10 +227,15 @@ export function AppLayout() {
 
           text: buildSearchText(
             image,
-            imageAnalyses[image.id],
+            imageAnalyses[
+              image.id
+            ],
           ),
         }),
       )
+
+    setSimilarImageIds(null)
+    setSimilarSourceTitle(null)
 
     setIsSearching(true)
     setSearchError(null)
@@ -215,7 +249,8 @@ export function AppLayout() {
 
       setSearchResultIds(
         response.results.map(
-          (result) => result.id,
+          (result) =>
+            result.id,
         ),
       )
 
@@ -233,6 +268,115 @@ export function AppLayout() {
     }
   }
 
+  async function getImageEmbedding(
+    image: VisualReference,
+  ) {
+    const cachedEmbedding =
+      imageEmbeddingCacheRef
+        .current[
+        image.id
+      ]
+
+    if (cachedEmbedding) {
+      return cachedEmbedding
+    }
+
+    const response =
+      await embedImage(image)
+
+    imageEmbeddingCacheRef
+      .current[
+      image.id
+    ] = response.embedding
+
+    return response.embedding
+  }
+
+  async function handleFindSimilar(
+    sourceImage: VisualReference,
+  ) {
+    const images = [
+      ...uploadedImages,
+      ...mockImages,
+    ]
+
+    const candidates =
+      images.filter(
+        (image) =>
+          image.id !==
+          sourceImage.id,
+      )
+
+    if (
+      candidates.length === 0
+    ) {
+      throw new Error(
+        'There are no other references to compare.',
+      )
+    }
+
+    const sourceEmbedding =
+      await getImageEmbedding(
+        sourceImage,
+      )
+
+    const embeddedCandidates: {
+      id: string
+      embedding: number[]
+    }[] = []
+
+    for (
+      const candidate
+      of candidates
+    ) {
+      try {
+        const embedding =
+          await getImageEmbedding(
+            candidate,
+          )
+
+        embeddedCandidates.push({
+          id: candidate.id,
+          embedding,
+        })
+      } catch {
+        // Skip images that cannot
+        // currently be embedded.
+      }
+    }
+
+    if (
+      embeddedCandidates.length ===
+      0
+    ) {
+      throw new Error(
+        'Unable to generate comparison embeddings.',
+      )
+    }
+
+    const rankedImageIds =
+      rankSimilarImages(
+        sourceEmbedding,
+        embeddedCandidates,
+      )
+
+    setSimilarImageIds(
+      rankedImageIds,
+    )
+
+    setSimilarSourceTitle(
+      sourceImage.title,
+    )
+
+    setSearchResultIds(null)
+    setSearchQuery('')
+    setSearchError(null)
+
+    setActiveSection(
+      'library',
+    )
+  }
+
   function handleSearchQueryChange(
     query: string,
   ) {
@@ -244,13 +388,32 @@ export function AppLayout() {
     }
   }
 
+  function clearDiscoveryResults() {
+    setSearchResultIds(null)
+
+    setSimilarImageIds(null)
+    setSimilarSourceTitle(null)
+
+    setSearchError(null)
+  }
+
+  function handleClearDiscovery() {
+    clearDiscoveryResults()
+
+    setSearchQuery('')
+  }
+
   function renderWorkspace() {
     switch (activeSection) {
       case 'boards':
-        return <BoardsWorkspace />
+        return (
+          <BoardsWorkspace />
+        )
 
       case 'discover':
-        return <DiscoverWorkspace />
+        return (
+          <DiscoverWorkspace />
+        )
 
       case 'library':
       default:
@@ -271,11 +434,23 @@ export function AppLayout() {
             searchError={
               searchError
             }
+            similarImageIds={
+              similarImageIds
+            }
+            similarSourceTitle={
+              similarSourceTitle
+            }
             onUploadFiles={
               handleUploadFiles
             }
             onAnalyzeImage={
               handleAnalyzeImage
+            }
+            onFindSimilar={
+              handleFindSimilar
+            }
+            onClearDiscovery={
+              handleClearDiscovery
             }
           />
         )
@@ -285,9 +460,15 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <Sidebar
-        activeSection={activeSection}
-        backendStatus={backendStatus}
-        onNavigate={setActiveSection}
+        activeSection={
+          activeSection
+        }
+        backendStatus={
+          backendStatus
+        }
+        onNavigate={
+          setActiveSection
+        }
       />
 
       <div className="app-main">
@@ -320,7 +501,8 @@ export function AppLayout() {
 }
 
 type LibraryWorkspaceProps = {
-  uploadedImages: VisualReference[]
+  uploadedImages:
+    VisualReference[]
 
   imageAnalyses: Record<
     string,
@@ -337,6 +519,14 @@ type LibraryWorkspaceProps = {
     | string
     | null
 
+  similarImageIds:
+    | string[]
+    | null
+
+  similarSourceTitle:
+    | string
+    | null
+
   onUploadFiles: (
     files: File[],
   ) => Promise<void>
@@ -344,6 +534,13 @@ type LibraryWorkspaceProps = {
   onAnalyzeImage: (
     image: VisualReference,
   ) => Promise<void>
+
+  onFindSimilar: (
+    image: VisualReference,
+  ) => Promise<void>
+
+  onClearDiscovery:
+    () => void
 }
 
 function LibraryWorkspace({
@@ -352,16 +549,20 @@ function LibraryWorkspace({
   searchResultIds,
   searchQuery,
   searchError,
+  similarImageIds,
+  similarSourceTitle,
   onUploadFiles,
   onAnalyzeImage,
+  onFindSimilar,
+  onClearDiscovery,
 }: LibraryWorkspaceProps) {
   const [
     selectedImage,
     setSelectedImage,
   ] =
-    useState<VisualReference | null>(
-      null,
-    )
+    useState<
+      VisualReference | null
+    >(null)
 
   const baseImages = [
     ...uploadedImages,
@@ -379,9 +580,13 @@ function LibraryWorkspace({
         ),
     )
 
-  const visibleImages =
+  const activeResultIds =
+    similarImageIds ??
     searchResultIds
-      ? searchResultIds
+
+  const visibleImages =
+    activeResultIds
+      ? activeResultIds
           .map(
             (id) =>
               images.find(
@@ -404,7 +609,8 @@ function LibraryWorkspace({
             (image) =>
               image.id ===
               selectedImage.id,
-          ) ?? selectedImage,
+          ) ??
+            selectedImage,
 
           imageAnalyses[
             selectedImage.id
@@ -425,22 +631,30 @@ function LibraryWorkspace({
           </h1>
 
           <p>
-            {searchResultIds
+            {similarImageIds
               ? (
-                  `Semantic results for “${searchQuery}”.`
+                  `Visually similar to “${similarSourceTitle}”.`
                 )
-              : (
-                  'A visual collection of references, ideas, moods, and creative directions.'
-                )}
+              : searchResultIds
+                ? (
+                    `Semantic results for “${searchQuery}”.`
+                  )
+                : (
+                    'A visual collection of references, ideas, moods, and creative directions.'
+                  )}
           </p>
         </div>
 
         <div className="library-header-meta">
           <span>
-            {visibleImages.length}{' '}
-            {searchResultIds
-              ? 'results'
-              : 'references'}
+            {visibleImages.length}
+            {' '}
+
+            {similarImageIds
+              ? 'similar references'
+              : searchResultIds
+                ? 'results'
+                : 'references'}
           </span>
         </div>
       </section>
@@ -457,8 +671,17 @@ function LibraryWorkspace({
       <div className="library-toolbar">
         <div className="library-filter-group">
           <button
-            className="filter-chip filter-chip-active"
+            className={
+              `filter-chip ${
+                !activeResultIds
+                  ? 'filter-chip-active'
+                  : ''
+              }`
+            }
             type="button"
+            onClick={
+              onClearDiscovery
+            }
           >
             All
           </button>
@@ -553,8 +776,13 @@ function LibraryWorkspace({
           onAnalyze={
             onAnalyzeImage
           }
+          onFindSimilar={
+            onFindSimilar
+          }
           onClose={() =>
-            setSelectedImage(null)
+            setSelectedImage(
+              null,
+            )
           }
         />
       )}

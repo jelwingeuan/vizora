@@ -19,6 +19,10 @@ type ImageDetailPanelProps = {
     image: VisualReference,
   ) => Promise<void>
 
+  onFindSimilar: (
+    image: VisualReference,
+  ) => Promise<void>
+
   onClose: () => void
 }
 
@@ -26,19 +30,41 @@ export function ImageDetailPanel({
   image,
   analysis,
   onAnalyze,
+  onFindSimilar,
   onClose,
 }: ImageDetailPanelProps) {
-  const [isAnalyzing, setIsAnalyzing] =
-    useState(false)
+  const [
+    isAnalyzing,
+    setIsAnalyzing,
+  ] = useState(false)
 
-  const [analysisError, setAnalysisError] =
-    useState<string | null>(null)
+  const [
+    analysisError,
+    setAnalysisError,
+  ] = useState<
+    string | null
+  >(null)
+
+  const [
+    isFindingSimilar,
+    setIsFindingSimilar,
+  ] = useState(false)
+
+  const [
+    similarityError,
+    setSimilarityError,
+  ] = useState<
+    string | null
+  >(null)
 
   useEffect(() => {
     function handleKeyDown(
       event: KeyboardEvent,
     ) {
-      if (event.key === 'Escape') {
+      if (
+        event.key ===
+        'Escape'
+      ) {
         onClose()
       }
     }
@@ -70,6 +96,27 @@ export function ImageDetailPanel({
       )
     } finally {
       setIsAnalyzing(false)
+    }
+  }
+
+  async function handleFindSimilar() {
+    setIsFindingSimilar(true)
+    setSimilarityError(null)
+
+    try {
+      await onFindSimilar(
+        image,
+      )
+
+      onClose()
+    } catch (error) {
+      setSimilarityError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to find similar images.',
+      )
+    } finally {
+      setIsFindingSimilar(false)
     }
   }
 
@@ -148,23 +195,33 @@ export function ImageDetailPanel({
 
             <dl className="detail-metadata">
               <div>
-                <dt>Dimensions</dt>
+                <dt>
+                  Dimensions
+                </dt>
 
                 <dd>
-                  {image.width} × {image.height}
+                  {image.width}
+                  {' × '}
+                  {image.height}
                 </dd>
               </div>
 
               <div>
-                <dt>Orientation</dt>
+                <dt>
+                  Orientation
+                </dt>
 
                 <dd>
-                  {getOrientation(image)}
+                  {getOrientation(
+                    image,
+                  )}
                 </dd>
               </div>
 
               <div>
-                <dt>Reference ID</dt>
+                <dt>
+                  Reference ID
+                </dt>
 
                 <dd>
                   {image.id}
@@ -179,30 +236,71 @@ export function ImageDetailPanel({
             </span>
 
             <div className="detail-tags">
-              {image.tags.map((tag) => {
-                const isAITag =
-                  analysis?.tags.some(
-                    (generatedTag) =>
-                      normalizeImageTag(
+              {image.tags.map(
+                (tag) => {
+                  const isAITag =
+                    analysis?.tags.some(
+                      (
                         generatedTag,
-                      ) ===
-                      normalizeImageTag(tag),
-                  ) ?? false
+                      ) =>
+                        normalizeImageTag(
+                          generatedTag,
+                        ) ===
+                        normalizeImageTag(
+                          tag,
+                        ),
+                    ) ?? false
 
-                return (
-                  <span
-                    key={tag}
-                    className={
-                      isAITag
-                        ? 'detail-tag-ai'
-                        : undefined
-                    }
-                  >
-                    {tag}
-                  </span>
-                )
-              })}
+                  return (
+                    <span
+                      key={tag}
+                      className={
+                        isAITag
+                          ? 'detail-tag-ai'
+                          : undefined
+                      }
+                    >
+                      {tag}
+                    </span>
+                  )
+                },
+              )}
             </div>
+          </section>
+
+          <section className="detail-section">
+            <div className="ai-section-heading">
+              <div>
+                <span className="detail-section-label">
+                  Visual similarity
+                </span>
+
+                <span className="ai-status">
+                  Image embedding
+                </span>
+              </div>
+
+              <button
+                className="ai-analyze-button"
+                type="button"
+                disabled={
+                  isFindingSimilar
+                }
+                onClick={() => {
+                  void handleFindSimilar()
+                }}
+              >
+                {isFindingSimilar
+                  ? 'Finding...'
+                  : 'Find similar'}
+              </button>
+            </div>
+
+            {similarityError && (
+              <p className="ai-analysis-error">
+                {similarityError}
+              </p>
+            )}
           </section>
 
           <section className="detail-section">
@@ -228,7 +326,9 @@ export function ImageDetailPanel({
               <button
                 className="ai-analyze-button"
                 type="button"
-                disabled={isAnalyzing}
+                disabled={
+                  isAnalyzing
+                }
                 onClick={() => {
                   void handleAnalyze()
                 }}
@@ -249,7 +349,9 @@ export function ImageDetailPanel({
 
             {analysis ? (
               <AIAnalysisView
-                analysis={analysis}
+                analysis={
+                  analysis
+                }
               />
             ) : (
               <div className="ai-analysis-placeholder">
@@ -388,7 +490,8 @@ function AIAnalysisView({
                 <span
                   className="ai-color-swatch"
                   style={{
-                    backgroundColor: color,
+                    backgroundColor:
+                      color,
                   }}
                 />
 
@@ -433,11 +536,17 @@ function AIAnalysisView({
 function getOrientation(
   image: VisualReference,
 ) {
-  if (image.width === image.height) {
+  if (
+    image.width ===
+    image.height
+  ) {
     return 'Square'
   }
 
-  return image.width > image.height
-    ? 'Landscape'
-    : 'Portrait'
+  return (
+    image.width >
+    image.height
+      ? 'Landscape'
+      : 'Portrait'
+  )
 }
