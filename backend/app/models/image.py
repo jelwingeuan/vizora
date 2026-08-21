@@ -1,7 +1,17 @@
 from datetime import UTC, datetime
+from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Integer,
+    String,
+)
+
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+)
 
 from app.core.database import Base
 
@@ -13,6 +23,14 @@ class Image(Base):
         Integer,
         primary_key=True,
         index=True,
+    )
+
+    public_id: Mapped[str] = mapped_column(
+        String(36),
+        unique=True,
+        index=True,
+        nullable=False,
+        default=lambda: str(uuid4()),
     )
 
     title: Mapped[str] = mapped_column(
@@ -71,13 +89,19 @@ class Image(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(UTC),
+        default=lambda: datetime.now(
+            UTC,
+        ),
         nullable=False,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        default=lambda: datetime.now(
+            UTC,
+        ),
+        onupdate=lambda: datetime.now(
+            UTC,
+        ),
         nullable=False,
     )
