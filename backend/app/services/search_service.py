@@ -1,6 +1,8 @@
+import asyncio
 import math
 import os
 
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
@@ -8,6 +10,9 @@ from app.schemas.search import (
     SemanticSearchItem,
     SemanticSearchResult,
 )
+
+
+load_dotenv()
 
 
 DEFAULT_EMBEDDING_MODEL = (
@@ -35,6 +40,17 @@ async def semantic_search(
     query: str,
     items: list[SemanticSearchItem],
 ) -> list[SemanticSearchResult]:
+    return await asyncio.to_thread(
+        _semantic_search_sync,
+        query,
+        items,
+    )
+
+
+def _semantic_search_sync(
+    query: str,
+    items: list[SemanticSearchItem],
+) -> list[SemanticSearchResult]:
     api_key = os.getenv(
         "GEMINI_API_KEY",
     )
@@ -49,18 +65,20 @@ async def semantic_search(
         DEFAULT_EMBEDDING_MODEL,
     )
 
+    documents = [
+        create_search_document(
+            item,
+        )
+        for item in items
+    ]
+
     client = genai.Client(
         api_key=api_key,
     )
 
-    documents = [
-        create_search_document(item)
-        for item in items
-    ]
-
     try:
         query_response = (
-            await client.aio.models.embed_content(
+            client.models.embed_content(
                 model=model,
                 contents=query,
                 config=types.EmbedContentConfig(
@@ -75,7 +93,7 @@ async def semantic_search(
         )
 
         document_response = (
-            await client.aio.models.embed_content(
+            client.models.embed_content(
                 model=model,
                 contents=documents,
                 config=types.EmbedContentConfig(
@@ -95,18 +113,22 @@ async def semantic_search(
             )
         )
 
-        if not document_response.embeddings:
+        document_embeddings = (
+            document_response.embeddings
+        )
+
+        if not document_embeddings:
             raise SemanticSearchError(
                 "Gemini returned no document embeddings."
             )
 
         if (
-            len(document_response.embeddings)
+            len(document_embeddings)
             != len(items)
         ):
             raise SemanticSearchError(
                 "Gemini returned an unexpected "
-                "number of embeddings."
+                "number of document embeddings."
             )
 
         results: list[
@@ -115,7 +137,7 @@ async def semantic_search(
 
         for item, embedding in zip(
             items,
-            document_response.embeddings,
+            document_embeddings,
             strict=True,
         ):
             if not embedding.values:
@@ -137,11 +159,14 @@ async def semantic_search(
             )
 
         results.sort(
-            key=lambda result: result.score,
+            key=lambda result:
+                result.score,
             reverse=True,
         )
 
-        return results[:MAX_RESULTS]
+        return results[
+            :MAX_RESULTS
+        ]
 
     except (
         SearchConfigurationError,
@@ -151,11 +176,13 @@ async def semantic_search(
 
     except Exception as error:
         raise SemanticSearchError(
-            "Semantic search failed."
+            "Semantic search failed: "
+            f"{type(error).__name__}: "
+            f"{error}"
         ) from error
 
     finally:
-        await client.aio.aclose()
+        client.close()
 
 
 def create_search_document(
@@ -179,8 +206,8 @@ def get_first_embedding(
 
     if not embedding.values:
         raise SemanticSearchError(
-            "Gemini returned an empty query "
-            "embedding."
+            "Gemini returned an empty "
+            "query embedding."
         )
 
     return embedding.values
@@ -196,8 +223,12 @@ def cosine_similarity(
         )
 
     dot_product = sum(
-        first_value * second_value
-        for first_value, second_value in zip(
+        first_value
+        * second_value
+        for (
+            first_value,
+            second_value,
+        ) in zip(
             first,
             second,
             strict=True,
