@@ -20,8 +20,16 @@ from app.models.image import (
     Image,
 )
 
+from app.schemas.analysis import (
+    ImageAnalysis,
+)
+
 from app.schemas.image import (
     StoredImageResponse,
+)
+
+from app.services.analysis_store_service import (
+    get_image_analyses,
 )
 
 from app.services.image_service import (
@@ -55,18 +63,38 @@ MAX_IMAGE_COUNT = 20
 )
 def get_images(
     request: Request,
+
     database: Session = Depends(
         get_db,
     ),
 ):
-    images = list_stored_images(
-        database,
+    images = (
+        list_stored_images(
+            database,
+        )
+    )
+
+    analyses = (
+        get_image_analyses(
+            database,
+
+            [
+                image.id
+                for image in images
+            ],
+        )
     )
 
     return [
         create_image_response(
-            image,
-            request,
+            image=image,
+            request=request,
+
+            analysis=(
+                analyses.get(
+                    image.id,
+                )
+            ),
         )
         for image in images
     ]
@@ -83,9 +111,11 @@ def get_images(
 )
 def upload_images(
     request: Request,
+
     images: list[
         UploadFile
     ] = File(...),
+
     database: Session = Depends(
         get_db,
     ),
@@ -180,8 +210,14 @@ def upload_images(
                     image.filename
                     or "image"
                 ),
-                mime_type=mime_type,
-                contents=contents,
+
+                mime_type=(
+                    mime_type
+                ),
+
+                contents=(
+                    contents
+                ),
             )
         )
 
@@ -211,8 +247,9 @@ def upload_images(
 
     return [
         create_image_response(
-            image,
-            request,
+            image=image,
+            request=request,
+            analysis=None,
         )
         for image in stored_images
     ]
@@ -220,11 +257,18 @@ def upload_images(
 
 def create_image_response(
     image: Image,
+
     request: Request,
+
+    analysis: (
+        ImageAnalysis
+        | None
+    ),
 ) -> StoredImageResponse:
     image_url = str(
         request.url_for(
             "uploads",
+
             path=(
                 image.stored_filename
             ),
@@ -233,19 +277,32 @@ def create_image_response(
 
     return StoredImageResponse(
         id=image.public_id,
+
         title=image.title,
+
         url=image_url,
+
         original_filename=(
             image.original_filename
         ),
-        file_size=image.file_size,
+
+        file_size=(
+            image.file_size
+        ),
+
         width=image.width,
+
         height=image.height,
+
         source=image.source,
+
         is_favorite=(
             image.is_favorite
         ),
+
         created_at=(
             image.created_at
         ),
+
+        analysis=analysis,
     )

@@ -203,22 +203,60 @@ export function AppLayout() {
           return
         }
 
-        const savedImages =
+        const savedRecords =
           await getImages()
 
         if (isCancelled) {
           return
         }
 
+        const savedImages =
+          savedRecords.map(
+            (record) =>
+              record.image,
+          )
+
+        const savedAnalyses =
+          savedRecords.reduce<
+            Record<
+              string,
+              ImageAnalysis
+            >
+          >(
+            (
+              analyses,
+              record,
+            ) => {
+              if (
+                record.analysis
+              ) {
+                analyses[
+                  record.image.id
+                ] =
+                  record.analysis
+              }
+
+              return analyses
+            },
+
+            {},
+          )
+
         setUploadedImages(
           savedImages,
+        )
+
+        setImageAnalyses(
+          savedAnalyses,
         )
 
         setBackendStatus(
           'connected',
         )
       } catch {
-        if (!isCancelled) {
+        if (
+          !isCancelled
+        ) {
           setBackendStatus(
             'offline',
           )
@@ -333,7 +371,8 @@ export function AppLayout() {
       SemanticSearchItem[] =
       images.map(
         (image) => ({
-          id: image.id,
+          id:
+            image.id,
 
           title:
             image.title,

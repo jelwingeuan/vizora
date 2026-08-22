@@ -3,6 +3,10 @@ import {
 } from './api'
 
 import type {
+  ImageAnalysis,
+} from '../types/analysis'
+
+import type {
   VisualReference,
 } from '../types/image'
 
@@ -12,23 +16,43 @@ type StoredImageResponse = {
   title: string
   url: string
 
-  original_filename: string
+  original_filename:
+    string
 
-  file_size: number
+  file_size:
+    number
 
-  width: number
-  height: number
+  width:
+    number
 
-  source: string
+  height:
+    number
 
-  is_favorite: boolean
+  source:
+    string
 
-  created_at: string
+  is_favorite:
+    boolean
+
+  created_at:
+    string
+
+  analysis:
+    ImageAnalysis | null
+}
+
+
+export type StoredImageRecord = {
+  image:
+    VisualReference
+
+  analysis:
+    ImageAnalysis | null
 }
 
 
 export async function getImages():
-Promise<VisualReference[]> {
+Promise<StoredImageRecord[]> {
   const response =
     await apiRequest<
       StoredImageResponse[]
@@ -37,15 +61,29 @@ Promise<VisualReference[]> {
     )
 
   return response.map(
-    createVisualReference,
+    (
+      image,
+    ) => ({
+      image:
+        createVisualReference(
+          image,
+        ),
+
+      analysis:
+        image.analysis,
+    }),
   )
 }
 
 
 export async function uploadImages(
   files: File[],
-): Promise<VisualReference[]> {
-  if (files.length === 0) {
+): Promise<
+  VisualReference[]
+> {
+  if (
+    files.length === 0
+  ) {
     return []
   }
 
@@ -66,9 +104,13 @@ export async function uploadImages(
       StoredImageResponse[]
     >(
       '/api/images',
+
       {
-        method: 'POST',
-        body: formData,
+        method:
+          'POST',
+
+        body:
+          formData,
       },
     )
 
@@ -79,7 +121,8 @@ export async function uploadImages(
 
 
 function createVisualReference(
-  image: StoredImageResponse,
+  image:
+    StoredImageResponse,
 ): VisualReference {
   const extension =
     getFileExtension(
@@ -87,11 +130,14 @@ function createVisualReference(
     )
 
   return {
-    id: image.id,
+    id:
+      image.id,
 
-    title: image.title,
+    title:
+      image.title,
 
-    src: image.url,
+    src:
+      image.url,
 
     alt:
       image.original_filename,
@@ -99,13 +145,18 @@ function createVisualReference(
     tags: [
       'uploaded',
       extension,
-    ].filter(Boolean),
+    ].filter(
+      Boolean,
+    ),
 
-    width: image.width,
+    width:
+      image.width,
 
-    height: image.height,
+    height:
+      image.height,
 
-    source: 'upload',
+    source:
+      'upload',
 
     fileName:
       image.original_filename,
@@ -125,5 +176,8 @@ function getFileExtension(
       .pop()
       ?.toLowerCase()
 
-  return extension ?? ''
+  return (
+    extension
+    ?? ''
+  )
 }

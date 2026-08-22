@@ -2,6 +2,10 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.schemas.analysis import (
+    ImageAnalysis,
+)
+
 
 class StoredImageResponse(
     BaseModel,
@@ -22,3 +26,8 @@ class StoredImageResponse(
     is_favorite: bool
 
     created_at: datetime
+
+    analysis: (
+        ImageAnalysis
+        | None
+    ) = None
