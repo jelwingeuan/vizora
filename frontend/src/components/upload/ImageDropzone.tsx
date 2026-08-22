@@ -10,69 +10,139 @@ import {
   validateImageFile,
 } from '../../utils/imageFiles'
 
+
 type ImageDropzoneProps = {
-  onFilesSelected: (files: File[]) => void
+  onFilesSelected: (
+    files: File[],
+  ) => Promise<void>
 }
+
 
 export function ImageDropzone({
   onFilesSelected,
 }: ImageDropzoneProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef =
+    useRef<HTMLInputElement>(
+      null,
+    )
 
-  const [isDragging, setIsDragging] =
-    useState(false)
+  const [
+    isDragging,
+    setIsDragging,
+  ] = useState(false)
 
-  const [errorMessage, setErrorMessage] =
-    useState<string | null>(null)
+  const [
+    isUploading,
+    setIsUploading,
+  ] = useState(false)
 
-  function handleFiles(files: File[]) {
-    setErrorMessage(null)
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState<
+    string | null
+  >(null)
 
-    const validFiles: File[] = []
-    const errors: string[] = []
 
-    files.forEach((file) => {
-      const error = validateImageFile(file)
-
-      if (error) {
-        errors.push(`${file.name}: ${error}`)
-        return
-      }
-
-      validFiles.push(file)
-    })
-
-    if (errors.length > 0) {
-      setErrorMessage(errors[0])
+  async function handleFiles(
+    files: File[],
+  ) {
+    if (isUploading) {
+      return
     }
 
-    if (validFiles.length > 0) {
-      onFilesSelected(validFiles)
+    setErrorMessage(null)
+
+    const validFiles:
+      File[] = []
+
+    const errors:
+      string[] = []
+
+    files.forEach(
+      (file) => {
+        const error =
+          validateImageFile(
+            file,
+          )
+
+        if (error) {
+          errors.push(
+            `${file.name}: ${error}`,
+          )
+
+          return
+        }
+
+        validFiles.push(
+          file,
+        )
+      },
+    )
+
+    if (
+      errors.length > 0
+    ) {
+      setErrorMessage(
+        errors[0],
+      )
+    }
+
+    if (
+      validFiles.length === 0
+    ) {
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      await onFilesSelected(
+        validFiles,
+      )
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Unable to upload images.',
+      )
+    } finally {
+      setIsUploading(false)
     }
   }
 
+
   function handleDrop(
-    event: DragEvent<HTMLDivElement>,
+    event:
+      DragEvent<HTMLDivElement>,
   ) {
     event.preventDefault()
 
     setIsDragging(false)
 
-    handleFiles(
-      Array.from(event.dataTransfer.files),
+    void handleFiles(
+      Array.from(
+        event.dataTransfer.files,
+      ),
     )
   }
 
+
   function handleDragOver(
-    event: DragEvent<HTMLDivElement>,
+    event:
+      DragEvent<HTMLDivElement>,
   ) {
     event.preventDefault()
 
-    setIsDragging(true)
+    if (!isUploading) {
+      setIsDragging(true)
+    }
   }
 
+
   function handleDragLeave(
-    event: DragEvent<HTMLDivElement>,
+    event:
+      DragEvent<HTMLDivElement>,
   ) {
     if (
       event.currentTarget.contains(
@@ -85,29 +155,43 @@ export function ImageDropzone({
     setIsDragging(false)
   }
 
-  function handleInputChange(
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const files = Array.from(
-      event.target.files ?? [],
-    )
 
-    handleFiles(files)
+  function handleInputChange(
+    event:
+      ChangeEvent<HTMLInputElement>,
+  ) {
+    const files =
+      Array.from(
+        event.target.files ?? [],
+      )
+
+    void handleFiles(
+      files,
+    )
 
     event.target.value = ''
   }
 
+
   return (
     <section className="upload-section">
       <div
-        className={`upload-dropzone ${
-          isDragging
-            ? 'upload-dropzone-active'
-            : ''
-        }`}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        className={
+          `upload-dropzone ${
+            isDragging
+              ? 'upload-dropzone-active'
+              : ''
+          }`
+        }
+        onDrop={
+          handleDrop
+        }
+        onDragOver={
+          handleDragOver
+        }
+        onDragLeave={
+          handleDragLeave
+        }
       >
         <input
           ref={inputRef}
@@ -115,7 +199,12 @@ export function ImageDropzone({
           type="file"
           accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
           multiple
-          onChange={handleInputChange}
+          disabled={
+            isUploading
+          }
+          onChange={
+            handleInputChange
+          }
         />
 
         <div
@@ -131,16 +220,20 @@ export function ImageDropzone({
 
         <div className="upload-dropzone-copy">
           <strong>
-            Drop your references here
+            {isUploading
+              ? 'Saving references...'
+              : 'Drop your references here'}
           </strong>
 
           <span>
             JPG, PNG or WebP · up to{' '}
+
             {Math.round(
-              MAX_IMAGE_FILE_SIZE /
-                1024 /
-                1024,
+              MAX_IMAGE_FILE_SIZE
+              / 1024
+              / 1024,
             )}{' '}
+
             MB each
           </span>
         </div>
@@ -148,11 +241,17 @@ export function ImageDropzone({
         <button
           className="upload-browse-button"
           type="button"
+          disabled={
+            isUploading
+          }
           onClick={() =>
-            inputRef.current?.click()
+            inputRef.current
+              ?.click()
           }
         >
-          Choose images
+          {isUploading
+            ? 'Uploading...'
+            : 'Choose images'}
         </button>
       </div>
 

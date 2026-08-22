@@ -1,0 +1,129 @@
+import {
+  apiRequest,
+} from './api'
+
+import type {
+  VisualReference,
+} from '../types/image'
+
+
+type StoredImageResponse = {
+  id: string
+  title: string
+  url: string
+
+  original_filename: string
+
+  file_size: number
+
+  width: number
+  height: number
+
+  source: string
+
+  is_favorite: boolean
+
+  created_at: string
+}
+
+
+export async function getImages():
+Promise<VisualReference[]> {
+  const response =
+    await apiRequest<
+      StoredImageResponse[]
+    >(
+      '/api/images',
+    )
+
+  return response.map(
+    createVisualReference,
+  )
+}
+
+
+export async function uploadImages(
+  files: File[],
+): Promise<VisualReference[]> {
+  if (files.length === 0) {
+    return []
+  }
+
+  const formData =
+    new FormData()
+
+  files.forEach(
+    (file) => {
+      formData.append(
+        'images',
+        file,
+      )
+    },
+  )
+
+  const response =
+    await apiRequest<
+      StoredImageResponse[]
+    >(
+      '/api/images',
+      {
+        method: 'POST',
+        body: formData,
+      },
+    )
+
+  return response.map(
+    createVisualReference,
+  )
+}
+
+
+function createVisualReference(
+  image: StoredImageResponse,
+): VisualReference {
+  const extension =
+    getFileExtension(
+      image.original_filename,
+    )
+
+  return {
+    id: image.id,
+
+    title: image.title,
+
+    src: image.url,
+
+    alt:
+      image.original_filename,
+
+    tags: [
+      'uploaded',
+      extension,
+    ].filter(Boolean),
+
+    width: image.width,
+
+    height: image.height,
+
+    source: 'upload',
+
+    fileName:
+      image.original_filename,
+
+    fileSize:
+      image.file_size,
+  }
+}
+
+
+function getFileExtension(
+  fileName: string,
+) {
+  const extension =
+    fileName
+      .split('.')
+      .pop()
+      ?.toLowerCase()
+
+  return extension ?? ''
+}

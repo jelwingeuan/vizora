@@ -1,4 +1,6 @@
-from contextlib import asynccontextmanager
+from contextlib import (
+    asynccontextmanager,
+)
 
 from fastapi import FastAPI
 
@@ -6,20 +8,31 @@ from fastapi.middleware.cors import (
     CORSMiddleware,
 )
 
+from fastapi.staticfiles import (
+    StaticFiles,
+)
+
 from app.core.database import (
     initialize_database,
+)
+
+from app.core.storage import (
+    UPLOADS_DIR,
 )
 
 from app.routers import (
     ai,
     embeddings,
     health,
+    images,
     search,
 )
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(
+    _: FastAPI,
+):
     initialize_database()
 
     yield
@@ -51,6 +64,17 @@ app.add_middleware(
 )
 
 
+app.mount(
+    "/uploads",
+    StaticFiles(
+        directory=str(
+            UPLOADS_DIR,
+        ),
+    ),
+    name="uploads",
+)
+
+
 app.include_router(
     health.router,
 )
@@ -65,6 +89,10 @@ app.include_router(
 
 app.include_router(
     embeddings.router,
+)
+
+app.include_router(
+    images.router,
 )
 
 

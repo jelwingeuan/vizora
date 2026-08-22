@@ -2,3 +2,4 @@ fastapi[standard]
 sqlalchemy>=2.0,<2.1
 google-genai
 python-dotenv>=1.0,<2.0
+pillow>=11.0

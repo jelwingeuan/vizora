@@ -1,0 +1,251 @@
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
+
+from sqlalchemy.orm import (
+    Session,
+)
+
+from app.core.database import (
+    get_db,
+)
+
+from app.models.image import (
+    Image,
+)
+
+from app.schemas.image import (
+    StoredImageResponse,
+)
+
+from app.services.image_service import (
+    ImageStorageError,
+    ImageValidationError,
+    PendingImageUpload,
+    SUPPORTED_IMAGE_TYPES,
+    list_stored_images,
+    persist_uploaded_images,
+)
+
+
+router = APIRouter(
+    prefix="/api/images",
+    tags=["images"],
+)
+
+
+MAX_IMAGE_SIZE = (
+    15 * 1024 * 1024
+)
+
+MAX_IMAGE_COUNT = 20
+
+
+@router.get(
+    "",
+    response_model=list[
+        StoredImageResponse
+    ],
+)
+def get_images(
+    request: Request,
+    database: Session = Depends(
+        get_db,
+    ),
+):
+    images = list_stored_images(
+        database,
+    )
+
+    return [
+        create_image_response(
+            image,
+            request,
+        )
+        for image in images
+    ]
+
+
+@router.post(
+    "",
+    response_model=list[
+        StoredImageResponse
+    ],
+    status_code=(
+        status.HTTP_201_CREATED
+    ),
+)
+def upload_images(
+    request: Request,
+    images: list[
+        UploadFile
+    ] = File(...),
+    database: Session = Depends(
+        get_db,
+    ),
+):
+    if not images:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=(
+                "At least one image "
+                "is required."
+            ),
+        )
+
+    if (
+        len(images)
+        > MAX_IMAGE_COUNT
+    ):
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=(
+                "A maximum of 20 images "
+                "can be uploaded at once."
+            ),
+        )
+
+    pending_uploads: list[
+        PendingImageUpload
+    ] = []
+
+    for image in images:
+        mime_type = (
+            image.content_type
+            or ""
+        )
+
+        if (
+            mime_type
+            not in SUPPORTED_IMAGE_TYPES
+        ):
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+                ),
+                detail=(
+                    "Only JPG, PNG, and WebP "
+                    "images are supported."
+                ),
+            )
+
+        try:
+            contents = (
+                image.file.read(
+                    MAX_IMAGE_SIZE
+                    + 1,
+                )
+            )
+        finally:
+            image.file.close()
+
+        if not contents:
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_400_BAD_REQUEST
+                ),
+                detail=(
+                    "The uploaded image "
+                    "is empty."
+                ),
+            )
+
+        if (
+            len(contents)
+            > MAX_IMAGE_SIZE
+        ):
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_413_CONTENT_TOO_LARGE
+                ),
+                detail=(
+                    "Images must be smaller "
+                    "than 15 MB."
+                ),
+            )
+
+        pending_uploads.append(
+            PendingImageUpload(
+                original_filename=(
+                    image.filename
+                    or "image"
+                ),
+                mime_type=mime_type,
+                contents=contents,
+            )
+        )
+
+    try:
+        stored_images = (
+            persist_uploaded_images(
+                database,
+                pending_uploads,
+            )
+        )
+
+    except ImageValidationError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=str(error),
+        ) from error
+
+    except ImageStorageError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+    return [
+        create_image_response(
+            image,
+            request,
+        )
+        for image in stored_images
+    ]
+
+
+def create_image_response(
+    image: Image,
+    request: Request,
+) -> StoredImageResponse:
+    image_url = str(
+        request.url_for(
+            "uploads",
+            path=(
+                image.stored_filename
+            ),
+        )
+    )
+
+    return StoredImageResponse(
+        id=image.public_id,
+        title=image.title,
+        url=image_url,
+        original_filename=(
+            image.original_filename
+        ),
+        file_size=image.file_size,
+        width=image.width,
+        height=image.height,
+        source=image.source,
+        is_favorite=(
+            image.is_favorite
+        ),
+        created_at=(
+            image.created_at
+        ),
+    )

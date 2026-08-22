@@ -4,22 +4,50 @@ import {
   useState,
 } from 'react'
 
-import { ImageDetailPanel } from '../gallery/ImageDetailPanel'
-import { ImageGrid } from '../gallery/ImageGrid'
-import { ImageDropzone } from '../upload/ImageDropzone'
-import { Sidebar } from './Sidebar'
-import { TopBar } from './TopBar'
-
-import { mockImages } from '../../data/mockImages'
-
-import { analyzeImage } from '../../services/aiService'
-import { getHealth } from '../../services/api'
-import { embedImage } from '../../services/embeddingService'
-import { semanticSearch } from '../../services/searchService'
+import {
+  ImageDetailPanel,
+} from '../gallery/ImageDetailPanel'
 
 import {
-  createVisualReferenceFromFile,
-} from '../../utils/imageFiles'
+  ImageGrid,
+} from '../gallery/ImageGrid'
+
+import {
+  ImageDropzone,
+} from '../upload/ImageDropzone'
+
+import {
+  Sidebar,
+} from './Sidebar'
+
+import {
+  TopBar,
+} from './TopBar'
+
+import {
+  mockImages,
+} from '../../data/mockImages'
+
+import {
+  analyzeImage,
+} from '../../services/aiService'
+
+import {
+  getHealth,
+} from '../../services/api'
+
+import {
+  embedImage,
+} from '../../services/embeddingService'
+
+import {
+  getImages,
+  uploadImages,
+} from '../../services/imageService'
+
+import {
+  semanticSearch,
+} from '../../services/searchService'
 
 import {
   rankSimilarImages,
@@ -29,69 +57,133 @@ import {
   mergeImageTags,
 } from '../../utils/tags'
 
-import type { ImageAnalysis } from '../../types/analysis'
-import type { BackendConnectionStatus } from '../../types/api'
-import type { VisualReference } from '../../types/image'
-import type { WorkspaceSection } from '../../types/navigation'
-import type { SemanticSearchItem } from '../../types/search'
+import type {
+  ImageAnalysis,
+} from '../../types/analysis'
 
-const sectionTitles: Record<WorkspaceSection, string> = {
+import type {
+  BackendConnectionStatus,
+} from '../../types/api'
+
+import type {
+  VisualReference,
+} from '../../types/image'
+
+import type {
+  WorkspaceSection,
+} from '../../types/navigation'
+
+import type {
+  SemanticSearchItem,
+} from '../../types/search'
+
+
+const sectionTitles:
+Record<
+  WorkspaceSection,
+  string
+> = {
   library: 'Library',
   boards: 'Boards',
   discover: 'Discover',
 }
 
-export function AppLayout() {
-  const [activeSection, setActiveSection] =
-    useState<WorkspaceSection>('library')
 
-  const [backendStatus, setBackendStatus] =
-    useState<BackendConnectionStatus>(
+export function AppLayout() {
+  const [
+    activeSection,
+    setActiveSection,
+  ] =
+    useState<WorkspaceSection>(
+      'library',
+    )
+
+  const [
+    backendStatus,
+    setBackendStatus,
+  ] =
+    useState<
+      BackendConnectionStatus
+    >(
       'checking',
     )
 
-  const [uploadedImages, setUploadedImages] =
-    useState<VisualReference[]>([])
-
-  const [imageAnalyses, setImageAnalyses] =
+  const [
+    uploadedImages,
+    setUploadedImages,
+  ] =
     useState<
-      Record<string, ImageAnalysis>
+      VisualReference[]
+    >([])
+
+  const [
+    imageAnalyses,
+    setImageAnalyses,
+  ] =
+    useState<
+      Record<
+        string,
+        ImageAnalysis
+      >
     >({})
 
-  const [searchQuery, setSearchQuery] =
+  const [
+    searchQuery,
+    setSearchQuery,
+  ] =
     useState('')
 
   const [
     searchResultIds,
     setSearchResultIds,
-  ] = useState<string[] | null>(null)
+  ] =
+    useState<
+      string[] | null
+    >(null)
 
-  const [isSearching, setIsSearching] =
+  const [
+    isSearching,
+    setIsSearching,
+  ] =
     useState(false)
 
-  const [searchError, setSearchError] =
-    useState<string | null>(null)
+  const [
+    searchError,
+    setSearchError,
+  ] =
+    useState<
+      string | null
+    >(null)
 
   const [
     similarImageIds,
     setSimilarImageIds,
-  ] = useState<string[] | null>(null)
+  ] =
+    useState<
+      string[] | null
+    >(null)
 
   const [
     similarSourceTitle,
     setSimilarSourceTitle,
-  ] = useState<string | null>(null)
-
-  const objectUrlsRef =
-    useRef<string[]>([])
+  ] =
+    useState<
+      string | null
+    >(null)
 
   const imageEmbeddingCacheRef =
-    useRef<Record<string, number[]>>({})
+    useRef<
+      Record<
+        string,
+        number[]
+      >
+    >({})
+
 
   useEffect(() => {
     let isCancelled = false
 
-    async function checkBackend() {
+    async function initializeBackend() {
       try {
         const health =
           await getHealth()
@@ -100,10 +192,30 @@ export function AppLayout() {
           return
         }
 
+        if (
+          health.status !==
+          'ok'
+        ) {
+          setBackendStatus(
+            'offline',
+          )
+
+          return
+        }
+
+        const savedImages =
+          await getImages()
+
+        if (isCancelled) {
+          return
+        }
+
+        setUploadedImages(
+          savedImages,
+        )
+
         setBackendStatus(
-          health.status === 'ok'
-            ? 'connected'
-            : 'offline',
+          'connected',
         )
       } catch {
         if (!isCancelled) {
@@ -114,80 +226,71 @@ export function AppLayout() {
       }
     }
 
-    void checkBackend()
+    void initializeBackend()
 
     return () => {
       isCancelled = true
     }
   }, [])
 
-  useEffect(() => {
-    const objectUrls =
-      objectUrlsRef.current
-
-    return () => {
-      objectUrls.forEach(
-        (objectUrl) => {
-          URL.revokeObjectURL(
-            objectUrl,
-          )
-        },
-      )
-    }
-  }, [])
 
   async function handleUploadFiles(
     files: File[],
   ) {
-    const results =
-      await Promise.allSettled(
-        files.map(
-          createVisualReferenceFromFile,
-        ),
+    const newImages =
+      await uploadImages(
+        files,
       )
 
-    const newImages = results
-      .filter(
-        (
-          result,
-        ): result is PromiseFulfilledResult<VisualReference> =>
-          result.status ===
-          'fulfilled',
-      )
-      .map(
-        (result) =>
-          result.value,
-      )
-
-    if (newImages.length === 0) {
+    if (
+      newImages.length === 0
+    ) {
       return
     }
 
-    objectUrlsRef.current.push(
-      ...newImages.map(
-        (image) =>
-          image.src,
-      ),
-    )
-
     setUploadedImages(
-      (currentImages) => [
-        ...newImages,
-        ...currentImages,
-      ],
+      (
+        currentImages,
+      ) => {
+        const currentIds =
+          new Set(
+            currentImages.map(
+              (image) =>
+                image.id,
+            ),
+          )
+
+        const uniqueNewImages =
+          newImages.filter(
+            (image) =>
+              !currentIds.has(
+                image.id,
+              ),
+          )
+
+        return [
+          ...uniqueNewImages,
+          ...currentImages,
+        ]
+      },
     )
 
     clearDiscoveryResults()
   }
 
+
   async function handleAnalyzeImage(
     image: VisualReference,
   ) {
     const analysis =
-      await analyzeImage(image)
+      await analyzeImage(
+        image,
+      )
 
     setImageAnalyses(
-      (currentAnalyses) => ({
+      (
+        currentAnalyses,
+      ) => ({
         ...currentAnalyses,
 
         [image.id]:
@@ -198,13 +301,19 @@ export function AppLayout() {
     clearDiscoveryResults()
   }
 
+
   async function handleSemanticSearch() {
     const query =
       searchQuery.trim()
 
     if (!query) {
-      setSearchResultIds(null)
-      setSearchError(null)
+      setSearchResultIds(
+        null,
+      )
+
+      setSearchError(
+        null,
+      )
 
       return
     }
@@ -214,7 +323,9 @@ export function AppLayout() {
       ...mockImages,
     ]
 
-    if (images.length === 0) {
+    if (
+      images.length === 0
+    ) {
       return
     }
 
@@ -223,22 +334,36 @@ export function AppLayout() {
       images.map(
         (image) => ({
           id: image.id,
-          title: image.title,
 
-          text: buildSearchText(
-            image,
-            imageAnalyses[
-              image.id
-            ],
-          ),
+          title:
+            image.title,
+
+          text:
+            buildSearchText(
+              image,
+
+              imageAnalyses[
+                image.id
+              ],
+            ),
         }),
       )
 
-    setSimilarImageIds(null)
-    setSimilarSourceTitle(null)
+    setSimilarImageIds(
+      null,
+    )
 
-    setIsSearching(true)
-    setSearchError(null)
+    setSimilarSourceTitle(
+      null,
+    )
+
+    setIsSearching(
+      true,
+    )
+
+    setSearchError(
+      null,
+    )
 
     try {
       const response =
@@ -264,9 +389,12 @@ export function AppLayout() {
           : 'Unable to search references.',
       )
     } finally {
-      setIsSearching(false)
+      setIsSearching(
+        false,
+      )
     }
   }
+
 
   async function getImageEmbedding(
     image: VisualReference,
@@ -277,23 +405,34 @@ export function AppLayout() {
         image.id
       ]
 
-    if (cachedEmbedding) {
-      return cachedEmbedding
+    if (
+      cachedEmbedding
+    ) {
+      return (
+        cachedEmbedding
+      )
     }
 
     const response =
-      await embedImage(image)
+      await embedImage(
+        image,
+      )
 
     imageEmbeddingCacheRef
       .current[
       image.id
-    ] = response.embedding
+    ] =
+      response.embedding
 
-    return response.embedding
+    return (
+      response.embedding
+    )
   }
 
+
   async function handleFindSimilar(
-    sourceImage: VisualReference,
+    sourceImage:
+      VisualReference,
   ) {
     const images = [
       ...uploadedImages,
@@ -308,7 +447,8 @@ export function AppLayout() {
       )
 
     if (
-      candidates.length === 0
+      candidates.length ===
+      0
     ) {
       throw new Error(
         'There are no other references to compare.',
@@ -335,10 +475,14 @@ export function AppLayout() {
             candidate,
           )
 
-        embeddedCandidates.push({
-          id: candidate.id,
-          embedding,
-        })
+        embeddedCandidates.push(
+          {
+            id:
+              candidate.id,
+
+            embedding,
+          },
+        )
       } catch {
         // Skip images that cannot
         // currently be embedded.
@@ -346,8 +490,8 @@ export function AppLayout() {
     }
 
     if (
-      embeddedCandidates.length ===
-      0
+      embeddedCandidates.length
+      === 0
     ) {
       throw new Error(
         'Unable to generate comparison embeddings.',
@@ -368,43 +512,77 @@ export function AppLayout() {
       sourceImage.title,
     )
 
-    setSearchResultIds(null)
-    setSearchQuery('')
-    setSearchError(null)
+    setSearchResultIds(
+      null,
+    )
+
+    setSearchQuery(
+      '',
+    )
+
+    setSearchError(
+      null,
+    )
 
     setActiveSection(
       'library',
     )
   }
 
+
   function handleSearchQueryChange(
     query: string,
   ) {
-    setSearchQuery(query)
+    setSearchQuery(
+      query,
+    )
 
-    if (!query.trim()) {
-      setSearchResultIds(null)
-      setSearchError(null)
+    if (
+      !query.trim()
+    ) {
+      setSearchResultIds(
+        null,
+      )
+
+      setSearchError(
+        null,
+      )
     }
   }
 
+
   function clearDiscoveryResults() {
-    setSearchResultIds(null)
+    setSearchResultIds(
+      null,
+    )
 
-    setSimilarImageIds(null)
-    setSimilarSourceTitle(null)
+    setSimilarImageIds(
+      null,
+    )
 
-    setSearchError(null)
+    setSimilarSourceTitle(
+      null,
+    )
+
+    setSearchError(
+      null,
+    )
   }
+
 
   function handleClearDiscovery() {
     clearDiscoveryResults()
 
-    setSearchQuery('')
+    setSearchQuery(
+      '',
+    )
   }
 
+
   function renderWorkspace() {
-    switch (activeSection) {
+    switch (
+      activeSection
+    ) {
       case 'boards':
         return (
           <BoardsWorkspace />
@@ -457,6 +635,7 @@ export function AppLayout() {
     }
   }
 
+
   return (
     <div className="app-shell">
       <Sidebar
@@ -500,20 +679,23 @@ export function AppLayout() {
   )
 }
 
+
 type LibraryWorkspaceProps = {
   uploadedImages:
     VisualReference[]
 
-  imageAnalyses: Record<
-    string,
-    ImageAnalysis
-  >
+  imageAnalyses:
+    Record<
+      string,
+      ImageAnalysis
+    >
 
   searchResultIds:
     | string[]
     | null
 
-  searchQuery: string
+  searchQuery:
+    string
 
   searchError:
     | string
@@ -532,16 +714,19 @@ type LibraryWorkspaceProps = {
   ) => Promise<void>
 
   onAnalyzeImage: (
-    image: VisualReference,
+    image:
+      VisualReference,
   ) => Promise<void>
 
   onFindSimilar: (
-    image: VisualReference,
+    image:
+      VisualReference,
   ) => Promise<void>
 
   onClearDiscovery:
     () => void
 }
+
 
 function LibraryWorkspace({
   uploadedImages,
@@ -561,7 +746,8 @@ function LibraryWorkspace({
     setSelectedImage,
   ] =
     useState<
-      VisualReference | null
+      VisualReference
+      | null
     >(null)
 
   const baseImages = [
@@ -574,6 +760,7 @@ function LibraryWorkspace({
       (image) =>
         applyAnalysisTags(
           image,
+
           imageAnalyses[
             image.id
           ]?.tags,
@@ -581,8 +768,8 @@ function LibraryWorkspace({
     )
 
   const activeResultIds =
-    similarImageIds ??
-    searchResultIds
+    similarImageIds
+    ?? searchResultIds
 
   const visibleImages =
     activeResultIds
@@ -591,14 +778,17 @@ function LibraryWorkspace({
             (id) =>
               images.find(
                 (image) =>
-                  image.id === id,
+                  image.id
+                  === id,
               ),
           )
           .filter(
             (
               image,
             ): image is VisualReference =>
-              Boolean(image),
+              Boolean(
+                image,
+              ),
           )
       : images
 
@@ -607,16 +797,18 @@ function LibraryWorkspace({
       ? applyAnalysisTags(
           baseImages.find(
             (image) =>
-              image.id ===
+              image.id
+              ===
               selectedImage.id,
-          ) ??
-            selectedImage,
+          )
+          ?? selectedImage,
 
           imageAnalyses[
             selectedImage.id
           ]?.tags,
         )
       : null
+
 
   return (
     <>
@@ -790,6 +982,7 @@ function LibraryWorkspace({
   )
 }
 
+
 function BoardsWorkspace() {
   return (
     <>
@@ -842,6 +1035,7 @@ function BoardsWorkspace() {
     </>
   )
 }
+
 
 function DiscoverWorkspace() {
   return (
@@ -898,23 +1092,32 @@ function DiscoverWorkspace() {
   )
 }
 
+
 function applyAnalysisTags(
-  image: VisualReference,
-  generatedTags: string[] = [],
+  image:
+    VisualReference,
+
+  generatedTags:
+    string[] = [],
 ): VisualReference {
   return {
     ...image,
 
-    tags: mergeImageTags(
-      generatedTags,
-      image.tags,
-    ),
+    tags:
+      mergeImageTags(
+        generatedTags,
+        image.tags,
+      ),
   }
 }
 
+
 function buildSearchText(
-  image: VisualReference,
-  analysis?: ImageAnalysis,
+  image:
+    VisualReference,
+
+  analysis?:
+    ImageAnalysis,
 ) {
   const sections = [
     `Tags: ${image.tags.join(', ')}`,
@@ -923,15 +1126,24 @@ function buildSearchText(
   if (analysis) {
     sections.push(
       `Summary: ${analysis.summary}`,
+
       `Subject: ${analysis.subject}`,
+
       `Style: ${analysis.style.join(', ')}`,
+
       `Mood: ${analysis.mood.join(', ')}`,
+
       `Lighting: ${analysis.lighting}`,
+
       `Composition: ${analysis.composition}`,
+
       `AI tags: ${analysis.tags.join(', ')}`,
+
       `Creative notes: ${analysis.creative_notes}`,
     )
   }
 
-  return sections.join('\n')
+  return sections.join(
+    '\n',
+  )
 }
