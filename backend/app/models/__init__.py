@@ -4,8 +4,13 @@ from app.models.image_analysis import (
     ImageAnalysisRecord,
 )
 
+from app.models.image_embedding import (
+    ImageEmbeddingRecord,
+)
+
 
 __all__ = [
     "Image",
     "ImageAnalysisRecord",
+    "ImageEmbeddingRecord",
 ]

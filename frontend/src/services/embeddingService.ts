@@ -1,4 +1,6 @@
-import { apiRequest } from './api'
+import {
+  apiRequest,
+} from './api'
 
 import type {
   ImageEmbedding,
@@ -12,10 +14,33 @@ import type {
 export async function embedImage(
   image: VisualReference,
 ): Promise<ImageEmbedding> {
-  const response =
-    await fetch(image.src)
+  if (
+    image.source ===
+    'upload'
+  ) {
+    return apiRequest<
+      ImageEmbedding
+    >(
+      `/api/embeddings/image/${
+        encodeURIComponent(
+          image.id,
+        )
+      }`,
 
-  if (!response.ok) {
+      {
+        method: 'POST',
+      },
+    )
+  }
+
+  const response =
+    await fetch(
+      image.src,
+    )
+
+  if (
+    !response.ok
+  ) {
     throw new Error(
       'Unable to read the selected image.',
     )
@@ -25,21 +50,28 @@ export async function embedImage(
     await response.blob()
 
   const mimeType =
-    blob.type || 'image/jpeg'
+    blob.type
+    || 'image/jpeg'
 
   const fileName =
-    image.fileName ??
-    `vizora-reference.${getExtension(
-      mimeType,
-    )}`
+    image.fileName
+    ?? (
+      `vizora-reference.${getExtension(
+        mimeType,
+      )}`
+    )
 
-  const file = new File(
-    [blob],
-    fileName,
-    {
-      type: mimeType,
-    },
-  )
+  const file =
+    new File(
+      [blob],
+
+      fileName,
+
+      {
+        type:
+          mimeType,
+      },
+    )
 
   const formData =
     new FormData()
@@ -49,11 +81,17 @@ export async function embedImage(
     file,
   )
 
-  return apiRequest<ImageEmbedding>(
+  return apiRequest<
+    ImageEmbedding
+  >(
     '/api/embeddings/image',
+
     {
-      method: 'POST',
-      body: formData,
+      method:
+        'POST',
+
+      body:
+        formData,
     },
   )
 }
@@ -62,7 +100,9 @@ export async function embedImage(
 function getExtension(
   mimeType: string,
 ) {
-  switch (mimeType) {
+  switch (
+    mimeType
+  ) {
     case 'image/png':
       return 'png'
 
