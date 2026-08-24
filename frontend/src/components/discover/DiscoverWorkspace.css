@@ -1,0 +1,683 @@
+/* ========================================
+   Discover workspace
+======================================== */
+
+.discover-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+
+/* ========================================
+   Discover header
+======================================== */
+
+.discover-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+
+  margin-bottom: 6px;
+}
+
+.discover-header h1 {
+  margin: 0;
+
+  color: #f4f3f8;
+
+  font-size: clamp(42px, 5vw, 64px);
+  font-weight: 520;
+
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.discover-header p {
+  max-width: 610px;
+
+  margin: 18px 0 0;
+
+  color: #777c89;
+
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.discover-header-meta {
+  flex-shrink: 0;
+
+  padding-bottom: 4px;
+
+  color: #626773;
+
+  font-size: 12px;
+}
+
+
+/* ========================================
+   Discovery hero
+======================================== */
+
+.discover-hero {
+  position: relative;
+
+  overflow: hidden;
+
+  padding: clamp(26px, 4vw, 42px);
+
+  border: 1px solid
+    rgba(143, 112, 255, 0.12);
+
+  border-radius: 26px;
+
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(125, 91, 255, 0.13),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 92% 100%,
+      rgba(196, 95, 255, 0.06),
+      transparent 30%
+    ),
+    rgba(255, 255, 255, 0.018);
+}
+
+.discover-hero::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(
+      rgba(255, 255, 255, 0.015) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.015) 1px,
+      transparent 1px
+    );
+
+  background-size: 36px 36px;
+
+  mask-image:
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.7),
+      transparent
+    );
+}
+
+.discover-hero-copy,
+.discover-search-form,
+.discover-directions {
+  position: relative;
+  z-index: 1;
+}
+
+.discover-hero-copy {
+  max-width: 720px;
+}
+
+.discover-hero-label,
+.discover-group-label {
+  display: block;
+
+  color: #777c89;
+
+  font-size: 10px;
+  font-weight: 650;
+
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.discover-hero-label {
+  margin-bottom: 12px;
+
+  color: #927dff;
+}
+
+.discover-hero-copy h2 {
+  margin: 0;
+
+  color: #f2f0f8;
+
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 520;
+
+  letter-spacing: -0.04em;
+}
+
+.discover-hero-copy p {
+  max-width: 650px;
+
+  margin: 14px 0 0;
+
+  color: #747986;
+
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+
+/* ========================================
+   Discovery search
+======================================== */
+
+.discover-search-form {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+  gap: 10px;
+
+  margin-top: 30px;
+}
+
+.discover-search-input {
+  width: 100%;
+  min-width: 0;
+
+  padding: 14px 17px;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.085);
+
+  border-radius: 13px;
+
+  outline: none;
+
+  background:
+    rgba(6, 7, 10, 0.58);
+
+  color: #e8e7ed;
+
+  font: inherit;
+  font-size: 13px;
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.discover-search-input::placeholder {
+  color: #555a65;
+}
+
+.discover-search-input:hover {
+  border-color:
+    rgba(255, 255, 255, 0.12);
+}
+
+.discover-search-input:focus {
+  border-color:
+    rgba(137, 108, 255, 0.48);
+
+  background:
+    rgba(10, 10, 15, 0.72);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(126, 91, 255, 0.08);
+}
+
+.discover-search-input:disabled {
+  opacity: 0.62;
+}
+
+.discover-search-button {
+  min-width: 112px;
+
+  padding: 0 20px;
+
+  border: 1px solid
+    rgba(156, 125, 255, 0.24);
+
+  border-radius: 13px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #745cff,
+      #9c68ff
+    );
+
+  color: #ffffff;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 10px 30px
+    rgba(100, 68, 210, 0.18);
+
+  transition:
+    transform 150ms ease,
+    opacity 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.discover-search-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 14px 34px
+    rgba(100, 68, 210, 0.25);
+}
+
+.discover-search-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* ========================================
+   Discovery chips
+======================================== */
+
+.discover-directions {
+  margin-top: 26px;
+}
+
+.discover-directions
++ .discover-directions {
+  margin-top: 18px;
+}
+
+.discover-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  margin-top: 11px;
+}
+
+.discover-chip {
+  padding: 8px 13px;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.075);
+
+  border-radius: 999px;
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  color: #858a96;
+
+  font: inherit;
+  font-size: 11px;
+
+  cursor: pointer;
+
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.discover-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  color: #e4defd;
+
+  border-color:
+    rgba(139, 109, 255, 0.22);
+
+  background:
+    rgba(126, 91, 255, 0.09);
+}
+
+.discover-chip-library {
+  border-color:
+    rgba(122, 201, 184, 0.1);
+
+  color: #7f9993;
+}
+
+.discover-chip-library:hover:not(:disabled) {
+  border-color:
+    rgba(122, 201, 184, 0.2);
+
+  background:
+    rgba(89, 178, 158, 0.06);
+
+  color: #b9d9d1;
+}
+
+.discover-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* ========================================
+   Discover statistics
+======================================== */
+
+.discover-stats {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+  gap: 12px;
+}
+
+.discover-stat-card {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 18px 19px;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.06);
+
+  border-radius: 16px;
+
+  background:
+    rgba(255, 255, 255, 0.014);
+}
+
+.discover-stat-card > span {
+  color: #616672;
+
+  font-size: 10px;
+  font-weight: 620;
+
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.discover-stat-card strong {
+  margin-top: 12px;
+
+  color: #e9e8ee;
+
+  font-size: 25px;
+  font-weight: 520;
+
+  letter-spacing: -0.04em;
+}
+
+.discover-stat-card small {
+  margin-top: 5px;
+
+  color: #5f6470;
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+
+/* ========================================
+   Discovery errors
+======================================== */
+
+.discover-error {
+  margin: 0;
+
+  padding: 12px 15px;
+
+  border: 1px solid
+    rgba(212, 99, 114, 0.17);
+
+  border-radius: 12px;
+
+  background:
+    rgba(174, 66, 83, 0.07);
+
+  color: #c9828d;
+
+  font-size: 12px;
+}
+
+
+/* ========================================
+   Results
+======================================== */
+
+.discover-results-section {
+  margin-top: 6px;
+}
+
+.discover-results-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+
+  margin-bottom: 24px;
+}
+
+.discover-results-header h2 {
+  margin: 8px 0 0;
+
+  color: #e8e7ed;
+
+  font-size: 23px;
+  font-weight: 520;
+
+  letter-spacing: -0.03em;
+}
+
+.discover-results-header p {
+  max-width: 620px;
+
+  margin: 8px 0 0;
+
+  color: #666b76;
+
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.discover-clear-button {
+  flex-shrink: 0;
+
+  padding: 8px 13px;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.07);
+
+  border-radius: 10px;
+
+  background:
+    rgba(255, 255, 255, 0.018);
+
+  color: #757a86;
+
+  font: inherit;
+  font-size: 11px;
+
+  cursor: pointer;
+
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.discover-clear-button:hover {
+  color: #d5d7de;
+
+  border-color:
+    rgba(255, 255, 255, 0.12);
+
+  background:
+    rgba(255, 255, 255, 0.035);
+}
+
+
+/* ========================================
+   Empty / start states
+======================================== */
+
+.discover-start-state {
+  min-height: 290px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 38px;
+
+  position: relative;
+  overflow: hidden;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.06);
+
+  border-radius: 22px;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(122, 89, 255, 0.065),
+      transparent 38%
+    ),
+    rgba(255, 255, 255, 0.01);
+
+  text-align: center;
+}
+
+.discover-start-icon {
+  width: 54px;
+  height: 54px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 19px;
+
+  border: 1px solid
+    rgba(143, 112, 255, 0.12);
+
+  border-radius: 17px;
+
+  background:
+    rgba(126, 91, 255, 0.07);
+
+  color: #8e78fa;
+}
+
+.discover-start-icon svg {
+  width: 23px;
+  height: 23px;
+
+  fill: none;
+  stroke: currentColor;
+
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.discover-start-state h3 {
+  margin: 0;
+
+  color: #e2e3e9;
+
+  font-size: 20px;
+  font-weight: 500;
+
+  letter-spacing: -0.025em;
+}
+
+.discover-start-state p {
+  max-width: 480px;
+
+  margin: 11px 0 0;
+
+  color: #626773;
+
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+
+/* ========================================
+   Results grid
+======================================== */
+
+.discover-results-grid {
+  min-height: 200px;
+}
+
+
+/* ========================================
+   Responsive
+======================================== */
+
+@media (
+  max-width: 1000px
+) {
+  .discover-stats {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+}
+
+
+@media (
+  max-width: 720px
+) {
+  .discover-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .discover-header-meta {
+    padding-bottom: 0;
+  }
+
+  .discover-search-form {
+    grid-template-columns: 1fr;
+  }
+
+  .discover-search-button {
+    min-height: 44px;
+  }
+
+  .discover-results-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+@media (
+  max-width: 520px
+) {
+  .discover-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .discover-hero {
+    padding: 24px 20px;
+  }
+
+  .discover-start-state {
+    padding: 32px 20px;
+  }
+}

@@ -5,6 +5,10 @@ import {
 } from 'react'
 
 import {
+  DiscoverWorkspace,
+} from '../discover/DiscoverWorkspace'
+
+import {
   ImageDetailPanel,
 } from '../gallery/ImageDetailPanel'
 
@@ -367,25 +371,10 @@ export function AppLayout() {
       return
     }
 
-    const items:
-      SemanticSearchItem[] =
-      images.map(
-        (image) => ({
-          id:
-            image.id,
-
-          title:
-            image.title,
-
-          text:
-            buildSearchText(
-              image,
-
-              imageAnalyses[
-                image.id
-              ],
-            ),
-        }),
+    const items =
+      createSemanticSearchItems(
+        images,
+        imageAnalyses,
       )
 
     setSimilarImageIds(
@@ -425,13 +414,55 @@ export function AppLayout() {
       setSearchError(
         error instanceof Error
           ? error.message
-          : 'Unable to search references.',
+          : (
+              'Unable to search references.'
+            ),
       )
     } finally {
       setIsSearching(
         false,
       )
     }
+  }
+
+
+  async function handleDiscoverSearch(
+    query: string,
+  ): Promise<string[]> {
+    const normalizedQuery =
+      query.trim()
+
+    if (!normalizedQuery) {
+      return []
+    }
+
+    const images = [
+      ...uploadedImages,
+      ...mockImages,
+    ]
+
+    if (
+      images.length === 0
+    ) {
+      return []
+    }
+
+    const items =
+      createSemanticSearchItems(
+        images,
+        imageAnalyses,
+      )
+
+    const response =
+      await semanticSearch(
+        normalizedQuery,
+        items,
+      )
+
+    return response.results.map(
+      (result) =>
+        result.id,
+    )
   }
 
 
@@ -629,7 +660,35 @@ export function AppLayout() {
 
       case 'discover':
         return (
-          <DiscoverWorkspace />
+          <DiscoverWorkspace
+            images={
+              [
+                ...uploadedImages,
+                ...mockImages,
+              ].map(
+                (image) =>
+                  applyAnalysisTags(
+                    image,
+
+                    imageAnalyses[
+                      image.id
+                    ]?.tags,
+                  ),
+              )
+            }
+            imageAnalyses={
+              imageAnalyses
+            }
+            onDiscover={
+              handleDiscoverSearch
+            }
+            onAnalyzeImage={
+              handleAnalyzeImage
+            }
+            onFindSimilar={
+              handleFindSimilar
+            }
+          />
         )
 
       case 'library':
@@ -1076,62 +1135,6 @@ function BoardsWorkspace() {
 }
 
 
-function DiscoverWorkspace() {
-  return (
-    <>
-      <section className="workspace-intro">
-        <span className="eyebrow">
-          AI-powered discovery
-        </span>
-
-        <h1>
-          Rediscover what inspires you.
-        </h1>
-
-        <p>
-          Discover will eventually use visual
-          intelligence and semantic search to
-          surface useful references from your
-          library.
-        </p>
-      </section>
-
-      <section
-        className="section-placeholder"
-        aria-label="Discover workspace"
-      >
-        <div className="section-placeholder-content">
-          <div
-            className="section-placeholder-icon"
-            aria-hidden="true"
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" />
-
-              <path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z" />
-            </svg>
-          </div>
-
-          <span className="empty-library-label">
-            Discover
-          </span>
-
-          <h2>
-            Discovery is coming.
-          </h2>
-
-          <p>
-            Semantic search, visual similarity,
-            and AI-assisted discovery will
-            appear here later.
-          </p>
-        </div>
-      </section>
-    </>
-  )
-}
-
-
 function applyAnalysisTags(
   image:
     VisualReference,
@@ -1148,6 +1151,37 @@ function applyAnalysisTags(
         image.tags,
       ),
   }
+}
+
+
+function createSemanticSearchItems(
+  images:
+    VisualReference[],
+
+  imageAnalyses:
+    Record<
+      string,
+      ImageAnalysis
+    >,
+): SemanticSearchItem[] {
+  return images.map(
+    (image) => ({
+      id:
+        image.id,
+
+      title:
+        image.title,
+
+      text:
+        buildSearchText(
+          image,
+
+          imageAnalyses[
+            image.id
+          ],
+        ),
+    }),
+  )
 }
 
 
