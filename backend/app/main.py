@@ -22,6 +22,7 @@ from app.core.storage import (
 
 from app.routers import (
     ai,
+    boards,
     embeddings,
     health,
     images,
@@ -93,6 +94,10 @@ app.include_router(
 
 app.include_router(
     images.router,
+)
+
+app.include_router(
+    boards.router,
 )
 
 

@@ -5,6 +5,10 @@ import {
 } from 'react'
 
 import {
+  BoardsWorkspace,
+} from '../boards/BoardsWorkspace'
+
+import {
   DiscoverWorkspace,
 } from '../discover/DiscoverWorkspace'
 
@@ -1076,60 +1080,6 @@ function LibraryWorkspace({
           }
         />
       )}
-    </>
-  )
-}
-
-
-function BoardsWorkspace() {
-  return (
-    <>
-      <section className="workspace-intro">
-        <span className="eyebrow">
-          Organize your inspiration
-        </span>
-
-        <h1>
-          Shape references into boards.
-        </h1>
-
-        <p>
-          Boards will let you group images
-          and ideas around projects, styles,
-          characters, environments, and
-          creative directions.
-        </p>
-      </section>
-
-      <section
-        className="section-placeholder"
-        aria-label="Boards workspace"
-      >
-        <div className="section-placeholder-content">
-          <div
-            className="section-placeholder-icon"
-            aria-hidden="true"
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h4l2 2h5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" />
-            </svg>
-          </div>
-
-          <span className="empty-library-label">
-            Boards
-          </span>
-
-          <h2>
-            No boards yet.
-          </h2>
-
-          <p>
-            Your project boards will live
-            here once board creation is added
-            to VIZORA.
-          </p>
-        </div>
-      </section>
     </>
   )
 }
