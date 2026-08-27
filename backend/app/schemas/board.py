@@ -83,6 +83,10 @@ class BoardResponse(
         | None
     )
 
+    image_ids: list[str] = Field(
+        default_factory=list,
+    )
+
     created_at: datetime
 
     updated_at: datetime

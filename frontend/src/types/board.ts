@@ -6,6 +6,9 @@ export type Board = {
   description:
     string | null
 
+  imageIds:
+    string[]
+
   createdAt: string
 
   updatedAt: string

@@ -2,6 +2,10 @@ from app.models.board import (
     Board,
 )
 
+from app.models.board_image import (
+    BoardImage,
+)
+
 from app.models.image import (
     Image,
 )
@@ -17,6 +21,7 @@ from app.models.image_embedding import (
 
 __all__ = [
     "Board",
+    "BoardImage",
     "Image",
     "ImageAnalysisRecord",
     "ImageEmbeddingRecord",

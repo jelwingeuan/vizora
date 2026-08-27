@@ -16,6 +16,9 @@ type BoardResponse = {
   description:
     string | null
 
+  image_ids:
+    string[]
+
   created_at:
     string
 
@@ -76,6 +79,68 @@ export async function createBoard(
 }
 
 
+export async function addImageToBoard(
+  boardId: string,
+
+  imageId: string,
+): Promise<Board> {
+  const response =
+    await apiRequest<
+      BoardResponse
+    >(
+      `/api/boards/${
+        encodeURIComponent(
+          boardId,
+        )
+      }/images/${
+        encodeURIComponent(
+          imageId,
+        )
+      }`,
+
+      {
+        method:
+          'POST',
+      },
+    )
+
+  return mapBoardResponse(
+    response,
+  )
+}
+
+
+export async function removeImageFromBoard(
+  boardId: string,
+
+  imageId: string,
+): Promise<Board> {
+  const response =
+    await apiRequest<
+      BoardResponse
+    >(
+      `/api/boards/${
+        encodeURIComponent(
+          boardId,
+        )
+      }/images/${
+        encodeURIComponent(
+          imageId,
+        )
+      }`,
+
+      {
+        method:
+          'DELETE',
+      },
+    )
+
+  return mapBoardResponse(
+    response,
+  )
+}
+
+
 function mapBoardResponse(
   response:
     BoardResponse,
@@ -89,6 +154,9 @@ function mapBoardResponse(
 
     description:
       response.description,
+
+    imageIds:
+      response.image_ids,
 
     createdAt:
       response.created_at,
