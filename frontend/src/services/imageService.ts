@@ -13,7 +13,9 @@ import type {
 
 type StoredImageResponse = {
   id: string
+
   title: string
+
   url: string
 
   original_filename:
@@ -29,7 +31,7 @@ type StoredImageResponse = {
     number
 
   source:
-    string
+    'upload'
 
   is_favorite:
     boolean
@@ -156,7 +158,13 @@ function createVisualReference(
       image.height,
 
     source:
-      'upload',
+      image.source,
+
+    isFavorite:
+      image.is_favorite,
+
+    createdAt:
+      image.created_at,
 
     fileName:
       image.original_filename,

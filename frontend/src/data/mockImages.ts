@@ -1,112 +1,355 @@
-import type { VisualReference } from '../types/image'
+import type {
+  VisualReference,
+} from '../types/image'
 
-export const mockImages: VisualReference[] = [
+
+export const mockImages:
+VisualReference[] = [
   {
     id: 'ref-001',
-    title: 'Quiet Architecture',
-    src: 'https://picsum.photos/seed/vizora-architecture/900/1200',
-    alt: 'Architecture reference',
-    tags: ['architecture', 'minimal', 'form'],
+
+    title:
+      'Quiet Architecture',
+
+    src:
+      'https://picsum.photos/seed/vizora-architecture/900/1200',
+
+    alt:
+      'Architecture reference',
+
+    tags: [
+      'architecture',
+      'minimal',
+      'form',
+    ],
+
     width: 900,
+
     height: 1200,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-002',
-    title: 'Cinematic Landscape',
-    src: 'https://picsum.photos/seed/vizora-landscape/900/650',
-    alt: 'Landscape reference',
-    tags: ['landscape', 'cinematic', 'lighting'],
+
+    title:
+      'Cinematic Landscape',
+
+    src:
+      'https://picsum.photos/seed/vizora-landscape/900/650',
+
+    alt:
+      'Landscape reference',
+
+    tags: [
+      'landscape',
+      'cinematic',
+      'lighting',
+    ],
+
     width: 900,
+
     height: 650,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-003',
-    title: 'Character Study',
-    src: 'https://picsum.photos/seed/vizora-character/900/1250',
-    alt: 'Character reference',
-    tags: ['character', 'portrait', 'mood'],
+
+    title:
+      'Character Study',
+
+    src:
+      'https://picsum.photos/seed/vizora-character/900/1250',
+
+    alt:
+      'Character reference',
+
+    tags: [
+      'character',
+      'portrait',
+      'mood',
+    ],
+
     width: 900,
+
     height: 1250,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-004',
-    title: 'Material & Texture',
-    src: 'https://picsum.photos/seed/vizora-texture/900/780',
-    alt: 'Texture reference',
-    tags: ['texture', 'material', 'detail'],
+
+    title:
+      'Material & Texture',
+
+    src:
+      'https://picsum.photos/seed/vizora-texture/900/780',
+
+    alt:
+      'Texture reference',
+
+    tags: [
+      'texture',
+      'material',
+      'detail',
+    ],
+
     width: 900,
+
     height: 780,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-005',
-    title: 'Night Atmosphere',
-    src: 'https://picsum.photos/seed/vizora-night/900/1350',
-    alt: 'Night atmosphere reference',
-    tags: ['night', 'atmosphere', 'color'],
+
+    title:
+      'Night Atmosphere',
+
+    src:
+      'https://picsum.photos/seed/vizora-night/900/1350',
+
+    alt:
+      'Night atmosphere reference',
+
+    tags: [
+      'night',
+      'atmosphere',
+      'color',
+    ],
+
     width: 900,
+
     height: 1350,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-006',
-    title: 'Editorial Composition',
-    src: 'https://picsum.photos/seed/vizora-editorial/900/1000',
-    alt: 'Editorial composition reference',
-    tags: ['editorial', 'layout', 'composition'],
+
+    title:
+      'Editorial Composition',
+
+    src:
+      'https://picsum.photos/seed/vizora-editorial/900/1000',
+
+    alt:
+      'Editorial composition reference',
+
+    tags: [
+      'editorial',
+      'layout',
+      'composition',
+    ],
+
     width: 900,
+
     height: 1000,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-007',
-    title: 'Natural Palette',
-    src: 'https://picsum.photos/seed/vizora-natural/900/700',
-    alt: 'Natural color reference',
-    tags: ['nature', 'palette', 'organic'],
+
+    title:
+      'Natural Palette',
+
+    src:
+      'https://picsum.photos/seed/vizora-natural/900/700',
+
+    alt:
+      'Natural color reference',
+
+    tags: [
+      'nature',
+      'palette',
+      'organic',
+    ],
+
     width: 900,
+
     height: 700,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-008',
-    title: 'Urban Study',
-    src: 'https://picsum.photos/seed/vizora-urban/900/1150',
-    alt: 'Urban reference',
-    tags: ['urban', 'street', 'structure'],
+
+    title:
+      'Urban Study',
+
+    src:
+      'https://picsum.photos/seed/vizora-urban/900/1150',
+
+    alt:
+      'Urban reference',
+
+    tags: [
+      'urban',
+      'street',
+      'structure',
+    ],
+
     width: 900,
+
     height: 1150,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-009',
-    title: 'Soft Lighting',
-    src: 'https://picsum.photos/seed/vizora-light/900/820',
-    alt: 'Soft lighting reference',
-    tags: ['lighting', 'soft', 'photography'],
+
+    title:
+      'Soft Lighting',
+
+    src:
+      'https://picsum.photos/seed/vizora-light/900/820',
+
+    alt:
+      'Soft lighting reference',
+
+    tags: [
+      'lighting',
+      'soft',
+      'photography',
+    ],
+
     width: 900,
+
     height: 820,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-010',
-    title: 'Visual Rhythm',
-    src: 'https://picsum.photos/seed/vizora-rhythm/900/1300',
-    alt: 'Visual composition reference',
-    tags: ['rhythm', 'shape', 'composition'],
+
+    title:
+      'Visual Rhythm',
+
+    src:
+      'https://picsum.photos/seed/vizora-rhythm/900/1300',
+
+    alt:
+      'Visual composition reference',
+
+    tags: [
+      'rhythm',
+      'shape',
+      'composition',
+    ],
+
     width: 900,
+
     height: 1300,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-011',
-    title: 'Color Exploration',
-    src: 'https://picsum.photos/seed/vizora-color/900/680',
-    alt: 'Color reference',
-    tags: ['color', 'contrast', 'palette'],
+
+    title:
+      'Color Exploration',
+
+    src:
+      'https://picsum.photos/seed/vizora-color/900/680',
+
+    alt:
+      'Color reference',
+
+    tags: [
+      'color',
+      'contrast',
+      'palette',
+    ],
+
     width: 900,
+
     height: 680,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
+
   {
     id: 'ref-012',
-    title: 'Environmental Mood',
-    src: 'https://picsum.photos/seed/vizora-environment/900/1080',
-    alt: 'Environmental reference',
-    tags: ['environment', 'mood', 'world'],
+
+    title:
+      'Environmental Mood',
+
+    src:
+      'https://picsum.photos/seed/vizora-environment/900/1080',
+
+    alt:
+      'Environmental reference',
+
+    tags: [
+      'environment',
+      'mood',
+      'world',
+    ],
+
     width: 900,
+
     height: 1080,
+
+    source: 'mock',
+
+    isFavorite: false,
+
+    createdAt: null,
   },
 ]
