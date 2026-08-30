@@ -35,6 +35,7 @@ from app.services.analysis_store_service import (
 from app.services.image_service import (
     ImageStorageError,
     ImageValidationError,
+    MAX_IMAGE_SIZE,
     PendingImageUpload,
     SUPPORTED_IMAGE_TYPES,
     list_stored_images,
@@ -47,10 +48,6 @@ router = APIRouter(
     tags=["images"],
 )
 
-
-MAX_IMAGE_SIZE = (
-    15 * 1024 * 1024
-)
 
 MAX_IMAGE_COUNT = 20
 
@@ -88,6 +85,7 @@ def get_images(
     return [
         create_image_response(
             image=image,
+
             request=request,
 
             analysis=(
@@ -96,6 +94,7 @@ def get_images(
                 )
             ),
         )
+
         for image in images
     ]
 
@@ -125,6 +124,7 @@ def upload_images(
             status_code=(
                 status.HTTP_400_BAD_REQUEST
             ),
+
             detail=(
                 "At least one image "
                 "is required."
@@ -139,6 +139,7 @@ def upload_images(
             status_code=(
                 status.HTTP_400_BAD_REQUEST
             ),
+
             detail=(
                 "A maximum of 20 images "
                 "can be uploaded at once."
@@ -163,6 +164,7 @@ def upload_images(
                 status_code=(
                     status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
                 ),
+
                 detail=(
                     "Only JPG, PNG, and WebP "
                     "images are supported."
@@ -176,6 +178,7 @@ def upload_images(
                     + 1,
                 )
             )
+
         finally:
             image.file.close()
 
@@ -184,6 +187,7 @@ def upload_images(
                 status_code=(
                     status.HTTP_400_BAD_REQUEST
                 ),
+
                 detail=(
                     "The uploaded image "
                     "is empty."
@@ -198,6 +202,7 @@ def upload_images(
                 status_code=(
                     status.HTTP_413_CONTENT_TOO_LARGE
                 ),
+
                 detail=(
                     "Images must be smaller "
                     "than 15 MB."
@@ -248,10 +253,14 @@ def upload_images(
     return [
         create_image_response(
             image=image,
+
             request=request,
+
             analysis=None,
         )
-        for image in stored_images
+
+        for image
+        in stored_images
     ]
 
 
@@ -276,9 +285,13 @@ def create_image_response(
     )
 
     return StoredImageResponse(
-        id=image.public_id,
+        id=(
+            image.public_id
+        ),
 
-        title=image.title,
+        title=(
+            image.title
+        ),
 
         url=image_url,
 
@@ -290,11 +303,17 @@ def create_image_response(
             image.file_size
         ),
 
-        width=image.width,
+        width=(
+            image.width
+        ),
 
-        height=image.height,
+        height=(
+            image.height
+        ),
 
-        source=image.source,
+        source=(
+            image.source
+        ),
 
         is_favorite=(
             image.is_favorite

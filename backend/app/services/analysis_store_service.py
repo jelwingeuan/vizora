@@ -25,23 +25,6 @@ class AnalysisStorageError(
     pass
 
 
-def find_image_by_public_id(
-    database: Session,
-    public_id: str,
-) -> Image | None:
-    statement = (
-        select(Image)
-        .where(
-            Image.public_id
-            == public_id,
-        )
-    )
-
-    return database.scalar(
-        statement,
-    )
-
-
 def persist_image_analysis(
     database: Session,
     image: Image,
@@ -199,6 +182,7 @@ def get_image_analyses(
             create_analysis_schema(
                 record,
             )
+
         for record in records
     }
 
@@ -219,7 +203,9 @@ def create_analysis_schema(
             record.mood,
         ),
 
-        lighting=record.lighting,
+        lighting=(
+            record.lighting
+        ),
 
         composition=(
             record.composition

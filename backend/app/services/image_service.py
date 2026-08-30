@@ -25,6 +25,11 @@ from app.models.image import (
 )
 
 
+MAX_IMAGE_SIZE = (
+    15 * 1024 * 1024
+)
+
+
 SUPPORTED_IMAGE_TYPES = {
     "image/jpeg",
     "image/png",
@@ -58,6 +63,12 @@ class ImageStorageError(
     pass
 
 
+class ImageSizeError(
+    RuntimeError,
+):
+    pass
+
+
 @dataclass(
     frozen=True,
     slots=True,
@@ -86,13 +97,71 @@ def list_stored_images(
     )
 
 
+def find_stored_image_by_public_id(
+    database: Session,
+    public_id: str,
+) -> Image | None:
+    statement = (
+        select(Image)
+        .where(
+            Image.public_id
+            == public_id,
+        )
+    )
+
+    return database.scalar(
+        statement,
+    )
+
+
+def read_stored_image_bytes(
+    image: Image,
+    max_size: int = MAX_IMAGE_SIZE,
+) -> bytes:
+    image_path = (
+        UPLOADS_DIR
+        / image.stored_filename
+    )
+
+    try:
+        with image_path.open(
+            "rb",
+        ) as file:
+            contents = file.read(
+                max_size + 1,
+            )
+
+    except OSError as error:
+        raise ImageStorageError(
+            "Unable to read the stored image."
+        ) from error
+
+    if not contents:
+        raise ImageStorageError(
+            "The stored image is empty."
+        )
+
+    if (
+        len(contents)
+        > max_size
+    ):
+        raise ImageSizeError(
+            "Images must be smaller "
+            "than 15 MB."
+        )
+
+    return contents
+
+
 def persist_uploaded_images(
     database: Session,
     uploads: list[
         PendingImageUpload
     ],
 ) -> list[Image]:
-    records: list[Image] = []
+    records: list[
+        Image
+    ] = []
 
     saved_paths: list[
         Path
@@ -146,12 +215,15 @@ def persist_uploaded_images(
                 title=create_title(
                     original_filename,
                 ),
+
                 original_filename=(
                     original_filename
                 ),
+
                 stored_filename=(
                     stored_filename
                 ),
+
                 storage_path=(
                     Path(
                         "storage",
@@ -159,14 +231,19 @@ def persist_uploaded_images(
                         stored_filename,
                     ).as_posix()
                 ),
+
                 mime_type=(
                     detected_mime_type
                 ),
+
                 file_size=len(
                     upload.contents,
                 ),
+
                 width=width,
+
                 height=height,
+
                 source="upload",
             )
 
@@ -224,7 +301,8 @@ def inspect_image(
             )
 
             image_format = (
-                image.format or ""
+                image.format
+                or ""
             ).upper()
 
             image.verify()
@@ -289,7 +367,9 @@ def normalize_filename(
     filename: str,
 ) -> str:
     cleaned_filename = (
-        Path(filename).name.strip()
+        Path(filename)
+        .name
+        .strip()
     )
 
     if not cleaned_filename:
@@ -327,5 +407,6 @@ def cleanup_saved_files(
             path.unlink(
                 missing_ok=True,
             )
+
         except OSError:
             pass

@@ -1,15 +1,9 @@
-from pathlib import Path
-
 from sqlalchemy import (
     select,
 )
 
 from sqlalchemy.orm import (
     Session,
-)
-
-from app.core.storage import (
-    UPLOADS_DIR,
 )
 
 from app.models.image import (
@@ -29,23 +23,6 @@ class EmbeddingStorageError(
     RuntimeError,
 ):
     pass
-
-
-def find_image_by_public_id(
-    database: Session,
-    public_id: str,
-) -> Image | None:
-    statement = (
-        select(Image)
-        .where(
-            Image.public_id
-            == public_id,
-        )
-    )
-
-    return database.scalar(
-        statement,
-    )
 
 
 def get_stored_image_embedding(
@@ -93,9 +70,11 @@ def get_stored_image_embedding(
         embedding=list(
             record.embedding,
         ),
+
         dimensions=(
             record.dimensions
         ),
+
         model=record.model,
     )
 
@@ -180,29 +159,3 @@ def persist_image_embedding(
         raise EmbeddingStorageError(
             "Unable to save image embedding."
         ) from error
-
-
-def read_stored_image_bytes(
-    image: Image,
-) -> bytes:
-    image_path = (
-        UPLOADS_DIR
-        / image.stored_filename
-    )
-
-    try:
-        contents = (
-            image_path.read_bytes()
-        )
-
-    except OSError as error:
-        raise EmbeddingStorageError(
-            "Unable to read the stored image."
-        ) from error
-
-    if not contents:
-        raise EmbeddingStorageError(
-            "The stored image is empty."
-        )
-
-    return contents

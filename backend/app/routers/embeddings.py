@@ -11,6 +11,10 @@ from sqlalchemy.orm import (
     Session,
 )
 
+from starlette.concurrency import (
+    run_in_threadpool,
+)
+
 from app.core.database import (
     get_db,
 )
@@ -29,9 +33,18 @@ from app.services.embedding_service import (
 
 from app.services.embedding_store_service import (
     EmbeddingStorageError,
-    find_image_by_public_id,
     get_stored_image_embedding,
     persist_image_embedding,
+)
+
+from app.services.image_service import (
+    ImageSizeError,
+    ImageStorageError,
+    ImageValidationError,
+    MAX_IMAGE_SIZE,
+    SUPPORTED_IMAGE_TYPES,
+    find_stored_image_by_public_id,
+    inspect_image,
     read_stored_image_bytes,
 )
 
@@ -39,18 +52,6 @@ from app.services.embedding_store_service import (
 router = APIRouter(
     prefix="/api/embeddings",
     tags=["embeddings"],
-)
-
-
-SUPPORTED_IMAGE_TYPES = {
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-}
-
-
-MAX_IMAGE_SIZE = (
-    15 * 1024 * 1024
 )
 
 
@@ -81,7 +82,13 @@ async def create_temporary_image_embedding(
             ),
         )
 
-    contents = await image.read()
+    try:
+        contents = await image.read(
+            MAX_IMAGE_SIZE + 1,
+        )
+
+    finally:
+        await image.close()
 
     if not contents:
         raise HTTPException(
@@ -110,10 +117,46 @@ async def create_temporary_image_embedding(
         )
 
     try:
+        (
+            _,
+            _,
+            detected_mime_type,
+        ) = await run_in_threadpool(
+            inspect_image,
+            contents,
+        )
+
+    except ImageValidationError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=str(error),
+        ) from error
+
+    if (
+        detected_mime_type
+        != mime_type
+    ):
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+
+            detail=(
+                "The uploaded file type "
+                "does not match its image data."
+            ),
+        )
+
+    try:
         return (
             await generate_image_embedding(
                 image_bytes=contents,
-                mime_type=mime_type,
+
+                mime_type=(
+                    detected_mime_type
+                ),
             )
         )
 
@@ -122,7 +165,6 @@ async def create_temporary_image_embedding(
             status_code=(
                 status.HTTP_503_SERVICE_UNAVAILABLE
             ),
-
             detail=str(error),
         ) from error
 
@@ -131,7 +173,6 @@ async def create_temporary_image_embedding(
             status_code=(
                 status.HTTP_502_BAD_GATEWAY
             ),
-
             detail=str(error),
         ) from error
 
@@ -148,7 +189,7 @@ async def get_or_create_stored_image_embedding(
     ),
 ):
     stored_image = (
-        find_image_by_public_id(
+        find_stored_image_by_public_id(
             database,
             image_id,
         )
@@ -184,7 +225,10 @@ async def get_or_create_stored_image_embedding(
         )
     )
 
-    if cached_embedding is not None:
+    if (
+        cached_embedding
+        is not None
+    ):
         return cached_embedding
 
     if (
@@ -203,35 +247,27 @@ async def get_or_create_stored_image_embedding(
         )
 
     try:
-        contents = (
-            read_stored_image_bytes(
-                stored_image,
-            )
+        contents = await run_in_threadpool(
+            read_stored_image_bytes,
+            stored_image,
+            MAX_IMAGE_SIZE,
         )
 
-    except EmbeddingStorageError as error:
-        raise HTTPException(
-            status_code=(
-                status.HTTP_500_INTERNAL_SERVER_ERROR
-            ),
-
-            detail=str(error),
-        ) from error
-
-    if (
-        len(contents)
-        > MAX_IMAGE_SIZE
-    ):
+    except ImageSizeError as error:
         raise HTTPException(
             status_code=(
                 status.HTTP_413_CONTENT_TOO_LARGE
             ),
+            detail=str(error),
+        ) from error
 
-            detail=(
-                "Images must be smaller "
-                "than 15 MB."
+    except ImageStorageError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-        )
+            detail=str(error),
+        ) from error
 
     try:
         embedding = (
@@ -249,7 +285,6 @@ async def get_or_create_stored_image_embedding(
             status_code=(
                 status.HTTP_503_SERVICE_UNAVAILABLE
             ),
-
             detail=str(error),
         ) from error
 
@@ -258,7 +293,6 @@ async def get_or_create_stored_image_embedding(
             status_code=(
                 status.HTTP_502_BAD_GATEWAY
             ),
-
             detail=str(error),
         ) from error
 
@@ -276,6 +310,5 @@ async def get_or_create_stored_image_embedding(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-
             detail=str(error),
         ) from error

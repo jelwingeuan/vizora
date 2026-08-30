@@ -2,7 +2,6 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
-    Form,
     HTTPException,
     UploadFile,
     status,
@@ -32,8 +31,18 @@ from app.services.ai_service import (
 
 from app.services.analysis_store_service import (
     AnalysisStorageError,
-    find_image_by_public_id,
     persist_image_analysis,
+)
+
+from app.services.image_service import (
+    ImageSizeError,
+    ImageStorageError,
+    ImageValidationError,
+    MAX_IMAGE_SIZE,
+    SUPPORTED_IMAGE_TYPES,
+    find_stored_image_by_public_id,
+    inspect_image,
+    read_stored_image_bytes,
 )
 
 
@@ -43,32 +52,12 @@ router = APIRouter(
 )
 
 
-SUPPORTED_IMAGE_TYPES = {
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-}
-
-
-MAX_IMAGE_SIZE = (
-    15 * 1024 * 1024
-)
-
-
 @router.post(
     "/analyze",
     response_model=ImageAnalysis,
 )
-async def analyze_image(
+async def analyze_temporary_image(
     image: UploadFile = File(...),
-
-    image_id: str | None = Form(
-        default=None,
-    ),
-
-    database: Session = Depends(
-        get_db,
-    ),
 ):
     mime_type = (
         image.content_type
@@ -83,40 +72,27 @@ async def analyze_image(
             status_code=(
                 status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
             ),
+
             detail=(
                 "Only JPG, PNG, and WebP "
                 "images are supported."
             ),
         )
 
-    stored_image = None
-
-    if image_id:
-        stored_image = (
-            find_image_by_public_id(
-                database,
-                image_id,
-            )
+    try:
+        contents = await image.read(
+            MAX_IMAGE_SIZE + 1,
         )
 
-        if stored_image is None:
-            raise HTTPException(
-                status_code=(
-                    status.HTTP_404_NOT_FOUND
-                ),
-                detail=(
-                    "The stored image "
-                    "could not be found."
-                ),
-            )
-
-    contents = await image.read()
+    finally:
+        await image.close()
 
     if not contents:
         raise HTTPException(
             status_code=(
                 status.HTTP_400_BAD_REQUEST
             ),
+
             detail=(
                 "The uploaded image is empty."
             ),
@@ -130,6 +106,7 @@ async def analyze_image(
             status_code=(
                 status.HTTP_413_CONTENT_TOO_LARGE
             ),
+
             detail=(
                 "Images must be smaller "
                 "than 15 MB."
@@ -137,12 +114,144 @@ async def analyze_image(
         )
 
     try:
-        analysis = (
-            await run_in_threadpool(
-                analyze_image_bytes,
-                image_bytes=contents,
-                mime_type=mime_type,
-            )
+        (
+            _,
+            _,
+            detected_mime_type,
+        ) = await run_in_threadpool(
+            inspect_image,
+            contents,
+        )
+
+    except ImageValidationError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=str(error),
+        ) from error
+
+    if (
+        detected_mime_type
+        != mime_type
+    ):
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+
+            detail=(
+                "The uploaded file type "
+                "does not match its image data."
+            ),
+        )
+
+    return await run_analysis(
+        image_bytes=contents,
+        mime_type=detected_mime_type,
+    )
+
+
+@router.post(
+    "/analyze/{image_id}",
+    response_model=ImageAnalysis,
+)
+async def analyze_stored_image(
+    image_id: str,
+
+    database: Session = Depends(
+        get_db,
+    ),
+):
+    stored_image = (
+        find_stored_image_by_public_id(
+            database,
+            image_id,
+        )
+    )
+
+    if stored_image is None:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+
+            detail=(
+                "The stored image "
+                "could not be found."
+            ),
+        )
+
+    if (
+        stored_image.mime_type
+        not in SUPPORTED_IMAGE_TYPES
+    ):
+        raise HTTPException(
+            status_code=(
+                status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+            ),
+
+            detail=(
+                "The stored image type "
+                "is not supported."
+            ),
+        )
+
+    try:
+        contents = await run_in_threadpool(
+            read_stored_image_bytes,
+            stored_image,
+            MAX_IMAGE_SIZE,
+        )
+
+    except ImageSizeError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_413_CONTENT_TOO_LARGE
+            ),
+            detail=str(error),
+        ) from error
+
+    except ImageStorageError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+    analysis = await run_analysis(
+        image_bytes=contents,
+        mime_type=(
+            stored_image.mime_type
+        ),
+    )
+
+    try:
+        return persist_image_analysis(
+            database,
+            stored_image,
+            analysis,
+        )
+
+    except AnalysisStorageError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+
+async def run_analysis(
+    image_bytes: bytes,
+    mime_type: str,
+) -> ImageAnalysis:
+    try:
+        return await run_in_threadpool(
+            analyze_image_bytes,
+            image_bytes=image_bytes,
+            mime_type=mime_type,
         )
 
     except AIConfigurationError as error:
@@ -157,24 +266,6 @@ async def analyze_image(
         raise HTTPException(
             status_code=(
                 status.HTTP_502_BAD_GATEWAY
-            ),
-            detail=str(error),
-        ) from error
-
-    if stored_image is None:
-        return analysis
-
-    try:
-        return persist_image_analysis(
-            database,
-            stored_image,
-            analysis,
-        )
-
-    except AnalysisStorageError as error:
-        raise HTTPException(
-            status_code=(
-                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
             detail=str(error),
         ) from error

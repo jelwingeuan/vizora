@@ -14,6 +14,26 @@ import type {
 export async function analyzeImage(
   image: VisualReference,
 ): Promise<ImageAnalysis> {
+  if (
+    image.source ===
+    'upload'
+  ) {
+    return apiRequest<
+      ImageAnalysis
+    >(
+      `/api/ai/analyze/${
+        encodeURIComponent(
+          image.id,
+        )
+      }`,
+
+      {
+        method:
+          'POST',
+      },
+    )
+  }
+
   const imageResponse =
     await fetch(
       image.src,
@@ -44,7 +64,9 @@ export async function analyzeImage(
 
   const file =
     new File(
-      [blob],
+      [
+        blob,
+      ],
 
       fileName,
 
@@ -61,16 +83,6 @@ export async function analyzeImage(
     'image',
     file,
   )
-
-  if (
-    image.source ===
-    'upload'
-  ) {
-    formData.append(
-      'image_id',
-      image.id,
-    )
-  }
 
   return apiRequest<
     ImageAnalysis
