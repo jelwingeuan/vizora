@@ -25,6 +25,8 @@ from app.schemas.analysis import (
 )
 
 from app.schemas.image import (
+    ImageFavoriteResponse,
+    ImageFavoriteUpdate,
     StoredImageResponse,
 )
 
@@ -38,8 +40,10 @@ from app.services.image_service import (
     MAX_IMAGE_SIZE,
     PendingImageUpload,
     SUPPORTED_IMAGE_TYPES,
+    find_stored_image_by_public_id,
     list_stored_images,
     persist_uploaded_images,
+    set_image_favorite,
 )
 
 
@@ -262,6 +266,73 @@ def upload_images(
         for image
         in stored_images
     ]
+
+
+@router.patch(
+    "/{image_id}/favorite",
+    response_model=(
+        ImageFavoriteResponse
+    ),
+)
+def update_image_favorite(
+    image_id: str,
+
+    payload:
+        ImageFavoriteUpdate,
+
+    database: Session = Depends(
+        get_db,
+    ),
+):
+    image = (
+        find_stored_image_by_public_id(
+            database,
+            image_id,
+        )
+    )
+
+    if image is None:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+
+            detail=(
+                "The stored image "
+                "could not be found."
+            ),
+        )
+
+    try:
+        updated_image = (
+            set_image_favorite(
+                database=database,
+
+                image=image,
+
+                is_favorite=(
+                    payload.is_favorite
+                ),
+            )
+        )
+
+    except ImageStorageError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+    return ImageFavoriteResponse(
+        id=(
+            updated_image.public_id
+        ),
+
+        is_favorite=(
+            updated_image.is_favorite
+        ),
+    )
 
 
 def create_image_response(

@@ -11,7 +11,9 @@ class StoredImageResponse(
     BaseModel,
 ):
     id: str
+
     title: str
+
     url: str
 
     original_filename: str
@@ -19,6 +21,7 @@ class StoredImageResponse(
     file_size: int
 
     width: int
+
     height: int
 
     source: str
@@ -31,3 +34,17 @@ class StoredImageResponse(
         ImageAnalysis
         | None
     ) = None
+
+
+class ImageFavoriteUpdate(
+    BaseModel,
+):
+    is_favorite: bool
+
+
+class ImageFavoriteResponse(
+    BaseModel,
+):
+    id: str
+
+    is_favorite: bool

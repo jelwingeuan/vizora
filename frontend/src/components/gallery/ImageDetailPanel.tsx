@@ -3,63 +3,104 @@ import {
   useState,
 } from 'react'
 
-import type { ImageAnalysis } from '../../types/analysis'
-import type { VisualReference } from '../../types/image'
+import type {
+  ImageAnalysis,
+} from '../../types/analysis'
+
+import type {
+  VisualReference,
+} from '../../types/image'
 
 import {
   normalizeImageTag,
 } from '../../utils/tags'
 
-type ImageDetailPanelProps = {
-  image: VisualReference
 
-  analysis?: ImageAnalysis
+type ImageDetailPanelProps = {
+  image:
+    VisualReference
+
+  analysis?:
+    ImageAnalysis
 
   onAnalyze: (
-    image: VisualReference,
+    image:
+      VisualReference,
   ) => Promise<void>
 
   onFindSimilar: (
-    image: VisualReference,
+    image:
+      VisualReference,
   ) => Promise<void>
 
-  onClose: () => void
+  onSetFavorite?: (
+    image:
+      VisualReference,
+
+    isFavorite:
+      boolean,
+  ) => Promise<void>
+
+  onClose:
+    () => void
 }
+
 
 export function ImageDetailPanel({
   image,
   analysis,
   onAnalyze,
   onFindSimilar,
+  onSetFavorite,
   onClose,
 }: ImageDetailPanelProps) {
   const [
     isAnalyzing,
     setIsAnalyzing,
-  ] = useState(false)
+  ] =
+    useState(false)
 
   const [
     analysisError,
     setAnalysisError,
-  ] = useState<
-    string | null
-  >(null)
+  ] =
+    useState<
+      string | null
+    >(null)
 
   const [
     isFindingSimilar,
     setIsFindingSimilar,
-  ] = useState(false)
+  ] =
+    useState(false)
 
   const [
     similarityError,
     setSimilarityError,
-  ] = useState<
-    string | null
-  >(null)
+  ] =
+    useState<
+      string | null
+    >(null)
+
+  const [
+    isUpdatingFavorite,
+    setIsUpdatingFavorite,
+  ] =
+    useState(false)
+
+  const [
+    favoriteError,
+    setFavoriteError,
+  ] =
+    useState<
+      string | null
+    >(null)
+
 
   useEffect(() => {
     function handleKeyDown(
-      event: KeyboardEvent,
+      event:
+        KeyboardEvent,
     ) {
       if (
         event.key ===
@@ -82,26 +123,46 @@ export function ImageDetailPanel({
     }
   }, [onClose])
 
+
   async function handleAnalyze() {
-    setIsAnalyzing(true)
-    setAnalysisError(null)
+    setIsAnalyzing(
+      true,
+    )
+
+    setAnalysisError(
+      null,
+    )
 
     try {
-      await onAnalyze(image)
+      await onAnalyze(
+        image,
+      )
+
     } catch (error) {
       setAnalysisError(
         error instanceof Error
           ? error.message
-          : 'Unable to analyze image.',
+          : (
+              'Unable to analyze image.'
+            ),
       )
+
     } finally {
-      setIsAnalyzing(false)
+      setIsAnalyzing(
+        false,
+      )
     }
   }
 
+
   async function handleFindSimilar() {
-    setIsFindingSimilar(true)
-    setSimilarityError(null)
+    setIsFindingSimilar(
+      true,
+    )
+
+    setSimilarityError(
+      null,
+    )
 
     try {
       await onFindSimilar(
@@ -109,21 +170,69 @@ export function ImageDetailPanel({
       )
 
       onClose()
+
     } catch (error) {
       setSimilarityError(
         error instanceof Error
           ? error.message
-          : 'Unable to find similar images.',
+          : (
+              'Unable to find similar images.'
+            ),
       )
+
     } finally {
-      setIsFindingSimilar(false)
+      setIsFindingSimilar(
+        false,
+      )
     }
   }
+
+
+  async function handleFavorite() {
+    if (
+      !onSetFavorite
+      || image.source !== 'upload'
+    ) {
+      return
+    }
+
+    setIsUpdatingFavorite(
+      true,
+    )
+
+    setFavoriteError(
+      null,
+    )
+
+    try {
+      await onSetFavorite(
+        image,
+        !image.isFavorite,
+      )
+
+    } catch (error) {
+      setFavoriteError(
+        error instanceof Error
+          ? error.message
+          : (
+              'Unable to update favorite.'
+            ),
+      )
+
+    } finally {
+      setIsUpdatingFavorite(
+        false,
+      )
+    }
+  }
+
 
   return (
     <div
       className="detail-panel-backdrop"
-      onClick={onClose}
+      onClick={
+        onClose
+      }
       role="presentation"
     >
       <aside
@@ -131,8 +240,9 @@ export function ImageDetailPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby="image-detail-title"
-        onClick={(event) =>
-          event.stopPropagation()
+        onClick={
+          (event) =>
+            event.stopPropagation()
         }
       >
         <header className="detail-panel-header">
@@ -150,7 +260,9 @@ export function ImageDetailPanel({
             className="detail-panel-close"
             type="button"
             aria-label="Close image details"
-            onClick={onClose}
+            onClick={
+              onClose
+            }
             autoFocus
           >
             <svg
@@ -158,6 +270,7 @@ export function ImageDetailPanel({
               aria-hidden="true"
             >
               <path d="M6 6l12 12" />
+
               <path d="M18 6 6 18" />
             </svg>
           </button>
@@ -172,8 +285,12 @@ export function ImageDetailPanel({
             }}
           >
             <img
-              src={image.src}
-              alt={image.alt}
+              src={
+                image.src
+              }
+              alt={
+                image.alt
+              }
             />
           </div>
 
@@ -183,10 +300,70 @@ export function ImageDetailPanel({
             </h2>
 
             <p>
-              Visual reference saved in your
-              VIZORA library.
+              {image.source === 'upload'
+                ? (
+                    'Visual reference saved in your VIZORA library.'
+                  )
+                : (
+                    'Demo visual reference available for exploration.'
+                  )}
             </p>
           </section>
+
+
+          {(
+            image.source ===
+            'upload'
+          ) && onSetFavorite && (
+            <section className="detail-section">
+              <div className="ai-section-heading">
+                <div>
+                  <span className="detail-section-label">
+                    Library
+                  </span>
+
+                  <span
+                    className={
+                      image.isFavorite
+                        ? (
+                            'ai-status '
+                            + 'ai-status-complete'
+                          )
+                        : 'ai-status'
+                    }
+                  >
+                    {image.isFavorite
+                      ? 'Favorited'
+                      : 'Not favorited'}
+                  </span>
+                </div>
+
+                <button
+                  className="ai-analyze-button"
+                  type="button"
+                  disabled={
+                    isUpdatingFavorite
+                  }
+                  onClick={() => {
+                    void handleFavorite()
+                  }}
+                >
+                  {isUpdatingFavorite
+                    ? 'Updating...'
+                    : image.isFavorite
+                      ? 'Remove favorite'
+                      : 'Add to favorites'}
+                </button>
+              </div>
+
+              {favoriteError && (
+                <p className="ai-analysis-error">
+                  {favoriteError}
+                </p>
+              )}
+            </section>
+          )}
+
 
           <section className="detail-section">
             <span className="detail-section-label">
@@ -230,6 +407,7 @@ export function ImageDetailPanel({
             </dl>
           </section>
 
+
           <section className="detail-section">
             <span className="detail-section-label">
               Tags
@@ -239,21 +417,27 @@ export function ImageDetailPanel({
               {image.tags.map(
                 (tag) => {
                   const isAITag =
-                    analysis?.tags.some(
-                      (
-                        generatedTag,
-                      ) =>
-                        normalizeImageTag(
+                    analysis
+                      ?.tags
+                      .some(
+                        (
                           generatedTag,
-                        ) ===
-                        normalizeImageTag(
-                          tag,
-                        ),
-                    ) ?? false
+                        ) =>
+                          normalizeImageTag(
+                            generatedTag,
+                          )
+                          ===
+                          normalizeImageTag(
+                            tag,
+                          ),
+                      )
+                    ?? false
 
                   return (
                     <span
-                      key={tag}
+                      key={
+                        tag
+                      }
                       className={
                         isAITag
                           ? 'detail-tag-ai'
@@ -267,6 +451,7 @@ export function ImageDetailPanel({
               )}
             </div>
           </section>
+
 
           <section className="detail-section">
             <div className="ai-section-heading">
@@ -303,6 +488,7 @@ export function ImageDetailPanel({
             )}
           </section>
 
+
           <section className="detail-section">
             <div className="ai-section-heading">
               <div>
@@ -313,7 +499,10 @@ export function ImageDetailPanel({
                 <span
                   className={
                     analysis
-                      ? 'ai-status ai-status-complete'
+                      ? (
+                          'ai-status '
+                          + 'ai-status-complete'
+                        )
                       : 'ai-status'
                   }
                 >
@@ -400,9 +589,12 @@ export function ImageDetailPanel({
   )
 }
 
+
 type AIAnalysisViewProps = {
-  analysis: ImageAnalysis
+  analysis:
+    ImageAnalysis
 }
+
 
 function AIAnalysisView({
   analysis,
@@ -431,7 +623,11 @@ function AIAnalysisView({
         <div className="ai-analysis-values">
           {analysis.style.map(
             (value) => (
-              <span key={value}>
+              <span
+                key={
+                  value
+                }
+              >
                 {value}
               </span>
             ),
@@ -447,7 +643,11 @@ function AIAnalysisView({
         <div className="ai-analysis-values">
           {analysis.mood.map(
             (value) => (
-              <span key={value}>
+              <span
+                key={
+                  value
+                }
+              >
                 {value}
               </span>
             ),
@@ -484,7 +684,9 @@ function AIAnalysisView({
           {analysis.color_palette.map(
             (color) => (
               <div
-                key={color}
+                key={
+                  color
+                }
                 className="ai-color"
               >
                 <span
@@ -512,7 +714,11 @@ function AIAnalysisView({
         <div className="ai-analysis-values">
           {analysis.tags.map(
             (tag) => (
-              <span key={tag}>
+              <span
+                key={
+                  tag
+                }
+              >
                 {tag}
               </span>
             ),
@@ -533,19 +739,21 @@ function AIAnalysisView({
   )
 }
 
+
 function getOrientation(
-  image: VisualReference,
+  image:
+    VisualReference,
 ) {
   if (
-    image.width ===
-    image.height
+    image.width
+    === image.height
   ) {
     return 'Square'
   }
 
   return (
-    image.width >
-    image.height
+    image.width
+    > image.height
       ? 'Landscape'
       : 'Portrait'
   )

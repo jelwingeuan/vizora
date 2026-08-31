@@ -50,6 +50,7 @@ import {
 
 import {
   getImages,
+  setImageFavorite,
   uploadImages,
 } from '../../services/imageService'
 
@@ -189,14 +190,17 @@ export function AppLayout() {
 
 
   useEffect(() => {
-    let isCancelled = false
+    let isCancelled =
+      false
 
     async function initializeBackend() {
       try {
         const health =
           await getHealth()
 
-        if (isCancelled) {
+        if (
+          isCancelled
+        ) {
           return
         }
 
@@ -214,7 +218,9 @@ export function AppLayout() {
         const savedRecords =
           await getImages()
 
-        if (isCancelled) {
+        if (
+          isCancelled
+        ) {
           return
         }
 
@@ -261,6 +267,7 @@ export function AppLayout() {
         setBackendStatus(
           'connected',
         )
+
       } catch {
         if (
           !isCancelled
@@ -289,7 +296,8 @@ export function AppLayout() {
       )
 
     if (
-      newImages.length === 0
+      newImages.length ===
+      0
     ) {
       return
     }
@@ -326,7 +334,8 @@ export function AppLayout() {
 
 
   async function handleAnalyzeImage(
-    image: VisualReference,
+    image:
+      VisualReference,
   ) {
     const analysis =
       await analyzeImage(
@@ -345,6 +354,48 @@ export function AppLayout() {
     )
 
     clearDiscoveryResults()
+  }
+
+
+  async function handleSetFavorite(
+    image:
+      VisualReference,
+
+    isFavorite:
+      boolean,
+  ) {
+    if (
+      image.source !==
+      'upload'
+    ) {
+      return
+    }
+
+    const persistedValue =
+      await setImageFavorite(
+        image.id,
+        isFavorite,
+      )
+
+    setUploadedImages(
+      (
+        currentImages,
+      ) =>
+        currentImages.map(
+          (
+            currentImage,
+          ) =>
+            currentImage.id
+            === image.id
+              ? {
+                  ...currentImage,
+
+                  isFavorite:
+                    persistedValue,
+                }
+              : currentImage,
+        ),
+    )
   }
 
 
@@ -370,7 +421,8 @@ export function AppLayout() {
     ]
 
     if (
-      images.length === 0
+      images.length ===
+      0
     ) {
       return
     }
@@ -414,6 +466,7 @@ export function AppLayout() {
       setActiveSection(
         'library',
       )
+
     } catch (error) {
       setSearchError(
         error instanceof Error
@@ -422,6 +475,7 @@ export function AppLayout() {
               'Unable to search references.'
             ),
       )
+
     } finally {
       setIsSearching(
         false,
@@ -431,12 +485,17 @@ export function AppLayout() {
 
 
   async function handleDiscoverSearch(
-    query: string,
-  ): Promise<string[]> {
+    query:
+      string,
+  ): Promise<
+    string[]
+  > {
     const normalizedQuery =
       query.trim()
 
-    if (!normalizedQuery) {
+    if (
+      !normalizedQuery
+    ) {
       return []
     }
 
@@ -446,7 +505,8 @@ export function AppLayout() {
     ]
 
     if (
-      images.length === 0
+      images.length ===
+      0
     ) {
       return []
     }
@@ -471,7 +531,8 @@ export function AppLayout() {
 
 
   async function getImageEmbedding(
-    image: VisualReference,
+    image:
+      VisualReference,
   ) {
     const cachedEmbedding =
       imageEmbeddingCacheRef
@@ -557,6 +618,7 @@ export function AppLayout() {
             embedding,
           },
         )
+
       } catch {
         // Skip images that cannot
         // currently be embedded.
@@ -605,7 +667,8 @@ export function AppLayout() {
 
 
   function handleSearchQueryChange(
-    query: string,
+    query:
+      string,
   ) {
     setSearchQuery(
       query,
@@ -702,33 +765,47 @@ export function AppLayout() {
             uploadedImages={
               uploadedImages
             }
+
             imageAnalyses={
               imageAnalyses
             }
+
             searchResultIds={
               searchResultIds
             }
+
             searchQuery={
               searchQuery
             }
+
             searchError={
               searchError
             }
+
             similarImageIds={
               similarImageIds
             }
+
             similarSourceTitle={
               similarSourceTitle
             }
+
             onUploadFiles={
               handleUploadFiles
             }
+
             onAnalyzeImage={
               handleAnalyzeImage
             }
+
             onFindSimilar={
               handleFindSimilar
             }
+
+            onSetFavorite={
+              handleSetFavorite
+            }
+
             onClearDiscovery={
               handleClearDiscovery
             }
@@ -744,9 +821,11 @@ export function AppLayout() {
         activeSection={
           activeSection
         }
+
         backendStatus={
           backendStatus
         }
+
         onNavigate={
           setActiveSection
         }
@@ -759,15 +838,19 @@ export function AppLayout() {
               activeSection
             ]
           }
+
           searchQuery={
             searchQuery
           }
+
           isSearching={
             isSearching
           }
+
           onSearchQueryChange={
             handleSearchQueryChange
           }
+
           onSearch={
             handleSemanticSearch
           }
@@ -780,6 +863,12 @@ export function AppLayout() {
     </div>
   )
 }
+
+
+type LibraryFilter =
+  | 'all'
+  | 'recent'
+  | 'favorites'
 
 
 type LibraryWorkspaceProps = {
@@ -812,7 +901,8 @@ type LibraryWorkspaceProps = {
     | null
 
   onUploadFiles: (
-    files: File[],
+    files:
+      File[],
   ) => Promise<void>
 
   onAnalyzeImage: (
@@ -823,6 +913,14 @@ type LibraryWorkspaceProps = {
   onFindSimilar: (
     image:
       VisualReference,
+  ) => Promise<void>
+
+  onSetFavorite: (
+    image:
+      VisualReference,
+
+    isFavorite:
+      boolean,
   ) => Promise<void>
 
   onClearDiscovery:
@@ -841,6 +939,7 @@ function LibraryWorkspace({
   onUploadFiles,
   onAnalyzeImage,
   onFindSimilar,
+  onSetFavorite,
   onClearDiscovery,
 }: LibraryWorkspaceProps) {
   const [
@@ -851,6 +950,15 @@ function LibraryWorkspace({
       VisualReference
       | null
     >(null)
+
+  const [
+    libraryFilter,
+    setLibraryFilter,
+  ] =
+    useState<
+      LibraryFilter
+    >('all')
+
 
   const baseImages = [
     ...uploadedImages,
@@ -873,6 +981,47 @@ function LibraryWorkspace({
     similarImageIds
     ?? searchResultIds
 
+
+  const recentImages =
+    [...uploadedImages]
+      .filter(
+        (image) =>
+          Boolean(
+            image.createdAt,
+          ),
+      )
+      .sort(
+        (
+          first,
+          second,
+        ) =>
+          getTimestamp(
+            second.createdAt,
+          )
+          -
+          getTimestamp(
+            first.createdAt,
+          ),
+      )
+
+
+  const favoriteImages =
+    uploadedImages.filter(
+      (image) =>
+        image.isFavorite,
+    )
+
+
+  const filteredImages =
+    libraryFilter ===
+    'recent'
+      ? recentImages
+      : libraryFilter ===
+        'favorites'
+        ? favoriteImages
+        : images
+
+
   const visibleImages =
     activeResultIds
       ? activeResultIds
@@ -892,7 +1041,8 @@ function LibraryWorkspace({
                 image,
               ),
           )
-      : images
+      : filteredImages
+
 
   const selectedImageWithTags =
     selectedImage
@@ -900,8 +1050,7 @@ function LibraryWorkspace({
           baseImages.find(
             (image) =>
               image.id
-              ===
-              selectedImage.id,
+              === selectedImage.id,
           )
           ?? selectedImage,
 
@@ -910,6 +1059,56 @@ function LibraryWorkspace({
           ]?.tags,
         )
       : null
+
+
+  function selectLibraryFilter(
+    filter:
+      LibraryFilter,
+  ) {
+    onClearDiscovery()
+
+    setLibraryFilter(
+      filter,
+    )
+  }
+
+
+  const libraryDescription =
+    similarImageIds
+      ? (
+          `Visually similar to “${similarSourceTitle}”.`
+        )
+      : searchResultIds
+        ? (
+            `Semantic results for “${searchQuery}”.`
+          )
+        : libraryFilter ===
+          'recent'
+          ? (
+              'Your persisted references ordered from newest to oldest.'
+            )
+          : libraryFilter ===
+            'favorites'
+            ? (
+                'References you have saved as favorites.'
+              )
+            : (
+                'A visual collection of references, ideas, moods, and creative directions.'
+              )
+
+
+  const resultLabel =
+    similarImageIds
+      ? 'similar references'
+      : searchResultIds
+        ? 'results'
+        : libraryFilter ===
+          'recent'
+          ? 'recent references'
+          : libraryFilter ===
+            'favorites'
+            ? 'favorites'
+            : 'references'
 
 
   return (
@@ -925,17 +1124,7 @@ function LibraryWorkspace({
           </h1>
 
           <p>
-            {similarImageIds
-              ? (
-                  `Visually similar to “${similarSourceTitle}”.`
-                )
-              : searchResultIds
-                ? (
-                    `Semantic results for “${searchQuery}”.`
-                  )
-                : (
-                    'A visual collection of references, ideas, moods, and creative directions.'
-                  )}
+            {libraryDescription}
           </p>
         </div>
 
@@ -943,15 +1132,11 @@ function LibraryWorkspace({
           <span>
             {visibleImages.length}
             {' '}
-
-            {similarImageIds
-              ? 'similar references'
-              : searchResultIds
-                ? 'results'
-                : 'references'}
+            {resultLabel}
           </span>
         </div>
       </section>
+
 
       {searchError && (
         <p
@@ -962,34 +1147,65 @@ function LibraryWorkspace({
         </p>
       )}
 
+
       <div className="library-toolbar">
         <div className="library-filter-group">
           <button
             className={
               `filter-chip ${
                 !activeResultIds
+                && libraryFilter
+                === 'all'
                   ? 'filter-chip-active'
                   : ''
               }`
             }
             type="button"
-            onClick={
-              onClearDiscovery
+            onClick={() =>
+              selectLibraryFilter(
+                'all',
+              )
             }
           >
             All
           </button>
 
           <button
-            className="filter-chip"
+            className={
+              `filter-chip ${
+                !activeResultIds
+                && libraryFilter
+                === 'recent'
+                  ? 'filter-chip-active'
+                  : ''
+              }`
+            }
             type="button"
+            onClick={() =>
+              selectLibraryFilter(
+                'recent',
+              )
+            }
           >
             Recent
           </button>
 
           <button
-            className="filter-chip"
+            className={
+              `filter-chip ${
+                !activeResultIds
+                && libraryFilter
+                === 'favorites'
+                  ? 'filter-chip-active'
+                  : ''
+              }`
+            }
             type="button"
+            onClick={() =>
+              selectLibraryFilter(
+                'favorites',
+              )
+            }
           >
             Favorites
           </button>
@@ -1039,40 +1255,87 @@ function LibraryWorkspace({
         </button>
       </div>
 
+
       <ImageDropzone
         onFilesSelected={
           onUploadFiles
         }
       />
 
-      <ImageGrid
-        images={
-          visibleImages
-        }
-        selectedImageId={
-          selectedImage?.id
-        }
-        onSelectImage={
-          setSelectedImage
-        }
-      />
+
+      {visibleImages.length > 0 ? (
+        <ImageGrid
+          images={
+            visibleImages
+          }
+
+          selectedImageId={
+            selectedImage?.id
+          }
+
+          onSelectImage={
+            setSelectedImage
+          }
+        />
+      ) : (
+        <section
+          className="section-placeholder"
+          aria-label="Empty library filter"
+        >
+          <div className="section-placeholder-content">
+            <span className="empty-library-label">
+              {libraryFilter ===
+              'favorites'
+                ? 'Favorites'
+                : 'Recent'}
+            </span>
+
+            <h2>
+              {libraryFilter ===
+              'favorites'
+                ? 'No favorites yet.'
+                : 'No recent uploads yet.'}
+            </h2>
+
+            <p>
+              {libraryFilter ===
+              'favorites'
+                ? (
+                    'Open an uploaded reference and add it to your favorites.'
+                  )
+                : (
+                    'Upload a reference to begin building your recent collection.'
+                  )}
+            </p>
+          </div>
+        </section>
+      )}
+
 
       {selectedImageWithTags && (
         <ImageDetailPanel
           image={
             selectedImageWithTags
           }
+
           analysis={
             imageAnalyses[
               selectedImageWithTags.id
             ]
           }
+
           onAnalyze={
             onAnalyzeImage
           }
+
           onFindSimilar={
             onFindSimilar
           }
+
+          onSetFavorite={
+            onSetFavorite
+          }
+
           onClose={() =>
             setSelectedImage(
               null,
@@ -1169,4 +1432,29 @@ function buildSearchText(
   return sections.join(
     '\n',
   )
+}
+
+
+function getTimestamp(
+  value:
+    string | null,
+) {
+  if (!value) {
+    return 0
+  }
+
+  const timestamp =
+    new Date(
+      value,
+    ).getTime()
+
+  if (
+    Number.isNaN(
+      timestamp,
+    )
+  ) {
+    return 0
+  }
+
+  return timestamp
 }

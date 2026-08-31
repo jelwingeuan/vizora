@@ -44,6 +44,14 @@ type StoredImageResponse = {
 }
 
 
+type ImageFavoriteResponse = {
+  id: string
+
+  is_favorite:
+    boolean
+}
+
+
 export type StoredImageRecord = {
   image:
     VisualReference
@@ -119,6 +127,42 @@ export async function uploadImages(
   return response.map(
     createVisualReference,
   )
+}
+
+
+export async function setImageFavorite(
+  imageId: string,
+
+  isFavorite: boolean,
+): Promise<boolean> {
+  const response =
+    await apiRequest<
+      ImageFavoriteResponse
+    >(
+      `/api/images/${
+        encodeURIComponent(
+          imageId,
+        )
+      }/favorite`,
+
+      {
+        method:
+          'PATCH',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body:
+          JSON.stringify({
+            is_favorite:
+              isFavorite,
+          }),
+      },
+    )
+
+  return response.is_favorite
 }
 
 

@@ -75,7 +75,9 @@ class ImageSizeError(
 )
 class PendingImageUpload:
     original_filename: str
+
     mime_type: str
+
     contents: bytes
 
 
@@ -112,6 +114,32 @@ def find_stored_image_by_public_id(
     return database.scalar(
         statement,
     )
+
+
+def set_image_favorite(
+    database: Session,
+    image: Image,
+    is_favorite: bool,
+) -> Image:
+    try:
+        image.is_favorite = (
+            is_favorite
+        )
+
+        database.commit()
+
+        database.refresh(
+            image,
+        )
+
+        return image
+
+    except Exception as error:
+        database.rollback()
+
+        raise ImageStorageError(
+            "Unable to update favorite state."
+        ) from error
 
 
 def read_stored_image_bytes(
