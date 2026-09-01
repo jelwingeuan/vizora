@@ -52,6 +52,13 @@ type ImageFavoriteResponse = {
 }
 
 
+type ImageTitleResponse = {
+  id: string
+
+  title: string
+}
+
+
 export type StoredImageRecord = {
   image:
     VisualReference
@@ -126,6 +133,59 @@ export async function uploadImages(
 
   return response.map(
     createVisualReference,
+  )
+}
+
+
+export async function renameImage(
+  imageId: string,
+
+  title: string,
+): Promise<string> {
+  const response =
+    await apiRequest<
+      ImageTitleResponse
+    >(
+      `/api/images/${
+        encodeURIComponent(
+          imageId,
+        )
+      }`,
+
+      {
+        method:
+          'PATCH',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body:
+          JSON.stringify({
+            title,
+          }),
+      },
+    )
+
+  return response.title
+}
+
+
+export async function deleteImage(
+  imageId: string,
+): Promise<void> {
+  await apiRequest<void>(
+    `/api/images/${
+      encodeURIComponent(
+        imageId,
+      )
+    }`,
+
+    {
+      method:
+        'DELETE',
+    },
   )
 }
 

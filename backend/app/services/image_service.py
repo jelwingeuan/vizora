@@ -116,6 +116,50 @@ def find_stored_image_by_public_id(
     )
 
 
+def update_image_title(
+    database: Session,
+    image: Image,
+    title: str,
+) -> Image:
+    normalized_title = (
+        title.strip()
+    )
+
+    if not normalized_title:
+        raise ImageValidationError(
+            "Image title cannot be empty."
+        )
+
+    if (
+        len(normalized_title)
+        > 255
+    ):
+        raise ImageValidationError(
+            "Image title must be 255 "
+            "characters or fewer."
+        )
+
+    try:
+        image.title = (
+            normalized_title
+        )
+
+        database.commit()
+
+        database.refresh(
+            image,
+        )
+
+        return image
+
+    except Exception as error:
+        database.rollback()
+
+        raise ImageStorageError(
+            "Unable to rename the image."
+        ) from error
+
+
 def set_image_favorite(
     database: Session,
     image: Image,
@@ -140,6 +184,70 @@ def set_image_favorite(
         raise ImageStorageError(
             "Unable to update favorite state."
         ) from error
+
+
+def delete_stored_image(
+    database: Session,
+    image: Image,
+) -> None:
+    image_path = (
+        UPLOADS_DIR
+        / image.stored_filename
+    )
+
+    quarantine_path = (
+        UPLOADS_DIR
+        / (
+            f".delete-{uuid4()}-"
+            f"{image.stored_filename}"
+        )
+    )
+
+    file_was_moved = (
+        False
+    )
+
+    try:
+        if image_path.exists():
+            image_path.replace(
+                quarantine_path,
+            )
+
+            file_was_moved = (
+                True
+            )
+
+        database.delete(
+            image,
+        )
+
+        database.commit()
+
+    except Exception as error:
+        database.rollback()
+
+        if file_was_moved:
+            try:
+                quarantine_path.replace(
+                    image_path,
+                )
+
+            except OSError as restore_error:
+                raise ImageStorageError(
+                    "Unable to delete the image "
+                    "and restore its stored file."
+                ) from restore_error
+
+        raise ImageStorageError(
+            "Unable to delete the stored image."
+        ) from error
+
+    if file_was_moved:
+        cleanup_saved_files(
+            [
+                quarantine_path,
+            ],
+        )
 
 
 def read_stored_image_bytes(

@@ -49,7 +49,9 @@ import {
 } from '../../services/embeddingService'
 
 import {
+  deleteImage,
   getImages,
+  renameImage,
   setImageFavorite,
   uploadImages,
 } from '../../services/imageService'
@@ -92,9 +94,14 @@ Record<
   WorkspaceSection,
   string
 > = {
-  library: 'Library',
-  boards: 'Boards',
-  discover: 'Discover',
+  library:
+    'Library',
+
+  boards:
+    'Boards',
+
+  discover:
+    'Discover',
 }
 
 
@@ -282,13 +289,15 @@ export function AppLayout() {
     void initializeBackend()
 
     return () => {
-      isCancelled = true
+      isCancelled =
+        true
     }
   }, [])
 
 
   async function handleUploadFiles(
-    files: File[],
+    files:
+      File[],
   ) {
     const newImages =
       await uploadImages(
@@ -396,6 +405,105 @@ export function AppLayout() {
               : currentImage,
         ),
     )
+  }
+
+
+  async function handleRenameImage(
+    image:
+      VisualReference,
+
+    title:
+      string,
+  ) {
+    if (
+      image.source !==
+      'upload'
+    ) {
+      return
+    }
+
+    const persistedTitle =
+      await renameImage(
+        image.id,
+        title,
+      )
+
+    setUploadedImages(
+      (
+        currentImages,
+      ) =>
+        currentImages.map(
+          (
+            currentImage,
+          ) =>
+            currentImage.id
+            === image.id
+              ? {
+                  ...currentImage,
+
+                  title:
+                    persistedTitle,
+                }
+              : currentImage,
+        ),
+    )
+
+    handleClearDiscovery()
+  }
+
+
+  async function handleDeleteImage(
+    image:
+      VisualReference,
+  ) {
+    if (
+      image.source !==
+      'upload'
+    ) {
+      return
+    }
+
+    await deleteImage(
+      image.id,
+    )
+
+    setUploadedImages(
+      (
+        currentImages,
+      ) =>
+        currentImages.filter(
+          (
+            currentImage,
+          ) =>
+            currentImage.id
+            !== image.id,
+        ),
+    )
+
+    setImageAnalyses(
+      (
+        currentAnalyses,
+      ) => {
+        const nextAnalyses = {
+          ...currentAnalyses,
+        }
+
+        delete nextAnalyses[
+          image.id
+        ]
+
+        return nextAnalyses
+      },
+    )
+
+    delete (
+      imageEmbeddingCacheRef
+        .current[
+        image.id
+      ]
+    )
+
+    handleClearDiscovery()
   }
 
 
@@ -743,15 +851,19 @@ export function AppLayout() {
                   ),
               )
             }
+
             imageAnalyses={
               imageAnalyses
             }
+
             onDiscover={
               handleDiscoverSearch
             }
+
             onAnalyzeImage={
               handleAnalyzeImage
             }
+
             onFindSimilar={
               handleFindSimilar
             }
@@ -804,6 +916,14 @@ export function AppLayout() {
 
             onSetFavorite={
               handleSetFavorite
+            }
+
+            onRenameImage={
+              handleRenameImage
+            }
+
+            onDeleteImage={
+              handleDeleteImage
             }
 
             onClearDiscovery={
@@ -923,6 +1043,19 @@ type LibraryWorkspaceProps = {
       boolean,
   ) => Promise<void>
 
+  onRenameImage: (
+    image:
+      VisualReference,
+
+    title:
+      string,
+  ) => Promise<void>
+
+  onDeleteImage: (
+    image:
+      VisualReference,
+  ) => Promise<void>
+
   onClearDiscovery:
     () => void
 }
@@ -940,6 +1073,8 @@ function LibraryWorkspace({
   onAnalyzeImage,
   onFindSimilar,
   onSetFavorite,
+  onRenameImage,
+  onDeleteImage,
   onClearDiscovery,
 }: LibraryWorkspaceProps) {
   const [
@@ -1073,6 +1208,25 @@ function LibraryWorkspace({
   }
 
 
+  async function handleLibraryDelete(
+    image:
+      VisualReference,
+  ) {
+    await onDeleteImage(
+      image,
+    )
+
+    if (
+      selectedImage?.id
+      === image.id
+    ) {
+      setSelectedImage(
+        null,
+      )
+    }
+  }
+
+
   const libraryDescription =
     similarImageIds
       ? (
@@ -1160,7 +1314,9 @@ function LibraryWorkspace({
                   : ''
               }`
             }
+
             type="button"
+
             onClick={() =>
               selectLibraryFilter(
                 'all',
@@ -1180,7 +1336,9 @@ function LibraryWorkspace({
                   : ''
               }`
             }
+
             type="button"
+
             onClick={() =>
               selectLibraryFilter(
                 'recent',
@@ -1200,7 +1358,9 @@ function LibraryWorkspace({
                   : ''
               }`
             }
+
             type="button"
+
             onClick={() =>
               selectLibraryFilter(
                 'favorites',
@@ -1275,6 +1435,14 @@ function LibraryWorkspace({
 
           onSelectImage={
             setSelectedImage
+          }
+
+          onRenameImage={
+            onRenameImage
+          }
+
+          onDeleteImage={
+            handleLibraryDelete
           }
         />
       ) : (

@@ -1,6 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    Field,
+)
 
 from app.schemas.analysis import (
     ImageAnalysis,
@@ -48,3 +51,20 @@ class ImageFavoriteResponse(
     id: str
 
     is_favorite: bool
+
+
+class ImageTitleUpdate(
+    BaseModel,
+):
+    title: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+
+class ImageTitleResponse(
+    BaseModel,
+):
+    id: str
+
+    title: str

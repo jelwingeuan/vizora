@@ -27,6 +27,8 @@ from app.schemas.analysis import (
 from app.schemas.image import (
     ImageFavoriteResponse,
     ImageFavoriteUpdate,
+    ImageTitleResponse,
+    ImageTitleUpdate,
     StoredImageResponse,
 )
 
@@ -40,10 +42,12 @@ from app.services.image_service import (
     MAX_IMAGE_SIZE,
     PendingImageUpload,
     SUPPORTED_IMAGE_TYPES,
+    delete_stored_image,
     find_stored_image_by_public_id,
     list_stored_images,
     persist_uploaded_images,
     set_image_favorite,
+    update_image_title,
 )
 
 
@@ -266,6 +270,128 @@ def upload_images(
         for image
         in stored_images
     ]
+
+
+@router.patch(
+    "/{image_id}",
+    response_model=(
+        ImageTitleResponse
+    ),
+)
+def rename_image(
+    image_id: str,
+
+    payload:
+        ImageTitleUpdate,
+
+    database: Session = Depends(
+        get_db,
+    ),
+):
+    image = (
+        find_stored_image_by_public_id(
+            database,
+            image_id,
+        )
+    )
+
+    if image is None:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+
+            detail=(
+                "The stored image "
+                "could not be found."
+            ),
+        )
+
+    try:
+        updated_image = (
+            update_image_title(
+                database=database,
+
+                image=image,
+
+                title=(
+                    payload.title
+                ),
+            )
+        )
+
+    except ImageValidationError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=str(error),
+        ) from error
+
+    except ImageStorageError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+    return ImageTitleResponse(
+        id=(
+            updated_image.public_id
+        ),
+
+        title=(
+            updated_image.title
+        ),
+    )
+
+
+@router.delete(
+    "/{image_id}",
+    status_code=(
+        status.HTTP_204_NO_CONTENT
+    ),
+)
+def delete_image(
+    image_id: str,
+
+    database: Session = Depends(
+        get_db,
+    ),
+) -> None:
+    image = (
+        find_stored_image_by_public_id(
+            database,
+            image_id,
+        )
+    )
+
+    if image is None:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+
+            detail=(
+                "The stored image "
+                "could not be found."
+            ),
+        )
+
+    try:
+        delete_stored_image(
+            database=database,
+            image=image,
+        )
+
+    except ImageStorageError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
 
 
 @router.patch(
