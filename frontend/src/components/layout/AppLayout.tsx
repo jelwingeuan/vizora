@@ -64,6 +64,10 @@ import {
   rankSimilarImages,
 } from '../../utils/similarity'
 
+import type {
+  SimilarityCandidate,
+} from '../../utils/similarity'
+
 import {
   mergeImageTags,
 } from '../../utils/tags'
@@ -103,6 +107,10 @@ Record<
   discover:
     'Discover',
 }
+
+
+const SIMILARITY_EMBEDDING_BATCH_SIZE =
+  4
 
 
 export function AppLayout() {
@@ -233,7 +241,9 @@ export function AppLayout() {
 
         const savedImages =
           savedRecords.map(
-            (record) =>
+            (
+              record,
+            ) =>
               record.image,
           )
 
@@ -318,14 +328,18 @@ export function AppLayout() {
         const currentIds =
           new Set(
             currentImages.map(
-              (image) =>
+              (
+                image,
+              ) =>
                 image.id,
             ),
           )
 
         const uniqueNewImages =
           newImages.filter(
-            (image) =>
+            (
+              image,
+            ) =>
               !currentIds.has(
                 image.id,
               ),
@@ -566,7 +580,9 @@ export function AppLayout() {
 
       setSearchResultIds(
         response.results.map(
-          (result) =>
+          (
+            result,
+          ) =>
             result.id,
         ),
       )
@@ -632,7 +648,9 @@ export function AppLayout() {
       )
 
     return response.results.map(
-      (result) =>
+      (
+        result,
+      ) =>
         result.id,
     )
   }
@@ -673,6 +691,73 @@ export function AppLayout() {
   }
 
 
+  async function getCandidateEmbeddings(
+    candidates:
+      VisualReference[],
+  ): Promise<
+    SimilarityCandidate[]
+  > {
+    const embeddedCandidates:
+      SimilarityCandidate[] = []
+
+
+    for (
+      let index = 0;
+      index < candidates.length;
+      index +=
+        SIMILARITY_EMBEDDING_BATCH_SIZE
+    ) {
+      const batch =
+        candidates.slice(
+          index,
+
+          index
+          +
+          SIMILARITY_EMBEDDING_BATCH_SIZE,
+        )
+
+
+      const batchResults =
+        await Promise.allSettled(
+          batch.map(
+            async (
+              candidate,
+            ) => ({
+              id:
+                candidate.id,
+
+              embedding:
+                await getImageEmbedding(
+                  candidate,
+                ),
+            }),
+          ),
+        )
+
+
+      batchResults.forEach(
+        (
+          result,
+        ) => {
+          if (
+            result.status ===
+            'fulfilled'
+          ) {
+            embeddedCandidates.push(
+              result.value,
+            )
+          }
+        },
+      )
+    }
+
+
+    return (
+      embeddedCandidates
+    )
+  }
+
+
   async function handleFindSimilar(
     sourceImage:
       VisualReference,
@@ -684,7 +769,9 @@ export function AppLayout() {
 
     const candidates =
       images.filter(
-        (image) =>
+        (
+          image,
+        ) =>
           image.id !==
           sourceImage.id,
       )
@@ -703,39 +790,14 @@ export function AppLayout() {
         sourceImage,
       )
 
-    const embeddedCandidates: {
-      id: string
-      embedding: number[]
-    }[] = []
-
-    for (
-      const candidate
-      of candidates
-    ) {
-      try {
-        const embedding =
-          await getImageEmbedding(
-            candidate,
-          )
-
-        embeddedCandidates.push(
-          {
-            id:
-              candidate.id,
-
-            embedding,
-          },
-        )
-
-      } catch {
-        // Skip images that cannot
-        // currently be embedded.
-      }
-    }
+    const embeddedCandidates =
+      await getCandidateEmbeddings(
+        candidates,
+      )
 
     if (
-      embeddedCandidates.length
-      === 0
+      embeddedCandidates.length ===
+      0
     ) {
       throw new Error(
         'Unable to generate comparison embeddings.',
@@ -841,7 +903,9 @@ export function AppLayout() {
                 ...uploadedImages,
                 ...mockImages,
               ].map(
-                (image) =>
+                (
+                  image,
+                ) =>
                   applyAnalysisTags(
                     image,
 
@@ -1102,7 +1166,9 @@ function LibraryWorkspace({
 
   const images =
     baseImages.map(
-      (image) =>
+      (
+        image,
+      ) =>
         applyAnalysisTags(
           image,
 
@@ -1120,7 +1186,9 @@ function LibraryWorkspace({
   const recentImages =
     [...uploadedImages]
       .filter(
-        (image) =>
+        (
+          image,
+        ) =>
           Boolean(
             image.createdAt,
           ),
@@ -1142,7 +1210,9 @@ function LibraryWorkspace({
 
   const favoriteImages =
     uploadedImages.filter(
-      (image) =>
+      (
+        image,
+      ) =>
         image.isFavorite,
     )
 
@@ -1161,9 +1231,13 @@ function LibraryWorkspace({
     activeResultIds
       ? activeResultIds
           .map(
-            (id) =>
+            (
+              id,
+            ) =>
               images.find(
-                (image) =>
+                (
+                  image,
+                ) =>
                   image.id
                   === id,
               ),
@@ -1183,7 +1257,9 @@ function LibraryWorkspace({
     selectedImage
       ? applyAnalysisTags(
           baseImages.find(
-            (image) =>
+            (
+              image,
+            ) =>
               image.id
               === selectedImage.id,
           )
@@ -1228,11 +1304,13 @@ function LibraryWorkspace({
 
 
   const libraryDescription =
-    similarImageIds
+    similarImageIds !==
+    null
       ? (
           `Visually similar to “${similarSourceTitle}”.`
         )
-      : searchResultIds
+      : searchResultIds !==
+        null
         ? (
             `Semantic results for “${searchQuery}”.`
           )
@@ -1252,9 +1330,11 @@ function LibraryWorkspace({
 
 
   const resultLabel =
-    similarImageIds
+    similarImageIds !==
+    null
       ? 'similar references'
-      : searchResultIds
+      : searchResultIds !==
+        null
         ? 'results'
         : libraryFilter ===
           'recent'
@@ -1263,6 +1343,14 @@ function LibraryWorkspace({
             'favorites'
             ? 'favorites'
             : 'references'
+
+
+  const emptyState =
+    getLibraryEmptyState(
+      similarImageIds,
+      searchResultIds,
+      libraryFilter,
+    )
 
 
   return (
@@ -1448,32 +1536,21 @@ function LibraryWorkspace({
       ) : (
         <section
           className="section-placeholder"
-          aria-label="Empty library filter"
+          aria-label={
+            emptyState.label
+          }
         >
           <div className="section-placeholder-content">
             <span className="empty-library-label">
-              {libraryFilter ===
-              'favorites'
-                ? 'Favorites'
-                : 'Recent'}
+              {emptyState.label}
             </span>
 
             <h2>
-              {libraryFilter ===
-              'favorites'
-                ? 'No favorites yet.'
-                : 'No recent uploads yet.'}
+              {emptyState.title}
             </h2>
 
             <p>
-              {libraryFilter ===
-              'favorites'
-                ? (
-                    'Open an uploaded reference and add it to your favorites.'
-                  )
-                : (
-                    'Upload a reference to begin building your recent collection.'
-                  )}
+              {emptyState.description}
             </p>
           </div>
         </section>
@@ -1546,7 +1623,9 @@ function createSemanticSearchItems(
     >,
 ): SemanticSearchItem[] {
   return images.map(
-    (image) => ({
+    (
+      image,
+    ) => ({
       id:
         image.id,
 
@@ -1625,4 +1704,109 @@ function getTimestamp(
   }
 
   return timestamp
+}
+
+
+function getLibraryEmptyState(
+  similarImageIds:
+    | string[]
+    | null,
+
+  searchResultIds:
+    | string[]
+    | null,
+
+  libraryFilter:
+    LibraryFilter,
+) {
+  if (
+    similarImageIds !==
+    null
+  ) {
+    return {
+      label:
+        'Similarity',
+
+      title:
+        'No close visual matches found.',
+
+      description:
+        (
+          'Try another reference or add more '
+          + 'images to your library.'
+        ),
+    }
+  }
+
+
+  if (
+    searchResultIds !==
+    null
+  ) {
+    return {
+      label:
+        'Search',
+
+      title:
+        'No matching references found.',
+
+      description:
+        (
+          'Try a broader search or analyze '
+          + 'more references first.'
+        ),
+    }
+  }
+
+
+  if (
+    libraryFilter ===
+    'favorites'
+  ) {
+    return {
+      label:
+        'Favorites',
+
+      title:
+        'No favorites yet.',
+
+      description:
+        (
+          'Open an uploaded reference and '
+          + 'add it to your favorites.'
+        ),
+    }
+  }
+
+
+  if (
+    libraryFilter ===
+    'recent'
+  ) {
+    return {
+      label:
+        'Recent',
+
+      title:
+        'No recent uploads yet.',
+
+      description:
+        (
+          'Upload a reference to begin '
+          + 'building your recent collection.'
+        ),
+    }
+  }
+
+
+  return {
+    label:
+      'Library',
+
+    title:
+      'No references yet.',
+
+    description:
+      'Upload an image to begin your library.',
+  }
 }
