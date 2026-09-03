@@ -1,5 +1,11 @@
 import {
+  useEffect,
+  useRef,
   useState,
+} from 'react'
+
+import type {
+  FormEvent,
 } from 'react'
 
 import type {
@@ -34,6 +40,13 @@ type ImageCardProps = {
 }
 
 
+type ManagementView =
+  | 'menu'
+  | 'rename'
+  | 'delete'
+  | null
+
+
 export function ImageCard({
   image,
   isSelected,
@@ -42,16 +55,40 @@ export function ImageCard({
   onDelete,
 }: ImageCardProps) {
   const [
-    isMenuOpen,
-    setIsMenuOpen,
+    managementView,
+    setManagementView,
   ] =
-    useState(false)
+    useState<
+      ManagementView
+    >(null)
+
+  const [
+    draftTitle,
+    setDraftTitle,
+  ] =
+    useState(
+      image.title,
+    )
 
   const [
     isManaging,
     setIsManaging,
   ] =
     useState(false)
+
+  const [
+    managementError,
+    setManagementError,
+  ] =
+    useState<
+      string | null
+    >(null)
+
+  const managementRef =
+    useRef<
+      HTMLDivElement
+      | null
+    >(null)
 
 
   const canManage =
@@ -65,42 +102,239 @@ export function ImageCard({
     )
 
 
-  async function handleRename() {
-    if (!onRename) {
-      return
-    }
-
-    const nextTitle =
-      window.prompt(
-        'Rename reference',
-        image.title,
-      )
-
+  useEffect(() => {
     if (
-      nextTitle ===
+      managementView ===
       null
     ) {
       return
     }
 
+
+    function handlePointerDown(
+      event:
+        PointerEvent,
+    ) {
+      if (
+        isManaging
+      ) {
+        return
+      }
+
+      const target =
+        event.target
+
+      if (
+        !(target instanceof Node)
+      ) {
+        return
+      }
+
+      if (
+        managementRef
+          .current
+          ?.contains(
+            target,
+          )
+      ) {
+        return
+      }
+
+      setManagementView(
+        null,
+      )
+
+      setManagementError(
+        null,
+      )
+
+      setDraftTitle(
+        image.title,
+      )
+    }
+
+
+    function handleKeyDown(
+      event:
+        KeyboardEvent,
+    ) {
+      if (
+        event.key !==
+          'Escape'
+        || isManaging
+      ) {
+        return
+      }
+
+      setManagementView(
+        null,
+      )
+
+      setManagementError(
+        null,
+      )
+
+      setDraftTitle(
+        image.title,
+      )
+    }
+
+
+    window.addEventListener(
+      'pointerdown',
+      handlePointerDown,
+    )
+
+    window.addEventListener(
+      'keydown',
+      handleKeyDown,
+    )
+
+
+    return () => {
+      window.removeEventListener(
+        'pointerdown',
+        handlePointerDown,
+      )
+
+      window.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      )
+    }
+  }, [
+    managementView,
+    isManaging,
+    image.title,
+  ])
+
+
+  function openMenu() {
+    if (
+      isManaging
+    ) {
+      return
+    }
+
+    setManagementError(
+      null,
+    )
+
+    setDraftTitle(
+      image.title,
+    )
+
+    setManagementView(
+      (
+        currentView,
+      ) =>
+        currentView ===
+        null
+          ? 'menu'
+          : null,
+    )
+  }
+
+
+  function openRename() {
+    setDraftTitle(
+      image.title,
+    )
+
+    setManagementError(
+      null,
+    )
+
+    setManagementView(
+      'rename',
+    )
+  }
+
+
+  function openDelete() {
+    setManagementError(
+      null,
+    )
+
+    setManagementView(
+      'delete',
+    )
+  }
+
+
+  function returnToMenu() {
+    if (
+      isManaging
+    ) {
+      return
+    }
+
+    setManagementError(
+      null,
+    )
+
+    setDraftTitle(
+      image.title,
+    )
+
+    setManagementView(
+      'menu',
+    )
+  }
+
+
+  async function handleRename(
+    event:
+      FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    if (
+      !onRename
+    ) {
+      return
+    }
+
+
     const normalizedTitle =
-      nextTitle.trim()
+      draftTitle.trim()
+
 
     if (
       !normalizedTitle
-      || normalizedTitle ===
-        image.title
     ) {
-      setIsMenuOpen(
-        false,
+      setManagementError(
+        'Enter a name for this reference.',
       )
 
       return
     }
 
+
+    if (
+      normalizedTitle ===
+      image.title
+    ) {
+      setManagementView(
+        null,
+      )
+
+      setManagementError(
+        null,
+      )
+
+      return
+    }
+
+
     setIsManaging(
       true,
     )
+
+    setManagementError(
+      null,
+    )
+
 
     try {
       await onRename(
@@ -108,16 +342,16 @@ export function ImageCard({
         normalizedTitle,
       )
 
-      setIsMenuOpen(
-        false,
+      setManagementView(
+        null,
       )
 
     } catch (error) {
-      window.alert(
+      setManagementError(
         error instanceof Error
           ? error.message
           : (
-              'Unable to rename image.'
+              'Unable to rename this reference.'
             ),
       )
 
@@ -130,17 +364,9 @@ export function ImageCard({
 
 
   async function handleDelete() {
-    if (!onDelete) {
-      return
-    }
-
-    const shouldDelete =
-      window.confirm(
-        `Delete “${image.title}”? `
-        + 'This cannot be undone.',
-      )
-
-    if (!shouldDelete) {
+    if (
+      !onDelete
+    ) {
       return
     }
 
@@ -148,21 +374,26 @@ export function ImageCard({
       true,
     )
 
+    setManagementError(
+      null,
+    )
+
+
     try {
       await onDelete(
         image,
       )
 
-      setIsMenuOpen(
-        false,
+      setManagementView(
+        null,
       )
 
     } catch (error) {
-      window.alert(
+      setManagementError(
         error instanceof Error
           ? error.message
           : (
-              'Unable to delete image.'
+              'Unable to delete this reference.'
             ),
       )
 
@@ -213,184 +444,273 @@ export function ImageCard({
             loading="lazy"
           />
         </button>
+      </div>
 
-        {canManage && (
-          <div className="image-card-overlay">
-            <button
-              className="image-card-action"
-              type="button"
+
+      {canManage && (
+        <div
+          ref={
+            managementRef
+          }
+          className={
+            `image-card-management ${
+              managementView
+                ? (
+                    'image-card-management-open'
+                  )
+                : ''
+            }`
+          }
+        >
+          <button
+            className="image-card-action"
+            type="button"
+            aria-label={
+              `Manage ${image.title}`
+            }
+            aria-haspopup="menu"
+            aria-expanded={
+              managementView !==
+              null
+            }
+            disabled={
+              isManaging
+            }
+            onClick={
+              openMenu
+            }
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                cx="5"
+                cy="12"
+                r="1.3"
+              />
+
+              <circle
+                cx="12"
+                cy="12"
+                r="1.3"
+              />
+
+              <circle
+                cx="19"
+                cy="12"
+                r="1.3"
+              />
+            </svg>
+          </button>
+
+
+          {managementView ===
+          'menu' && (
+            <div
+              className="image-management-popover image-management-menu"
+              role="menu"
               aria-label={
-                `More options for ${image.title}`
-              }
-              aria-expanded={
-                isMenuOpen
-              }
-              disabled={
-                isManaging
-              }
-              onClick={() =>
-                setIsMenuOpen(
-                  (
-                    current,
-                  ) =>
-                    !current,
-                )
+                `Manage ${image.title}`
               }
             >
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="5"
-                  cy="12"
-                  r="1.3"
-                />
-
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="1.3"
-                />
-
-                <circle
-                  cx="19"
-                  cy="12"
-                  r="1.3"
-                />
-              </svg>
-            </button>
-
-            {isMenuOpen && (
-              <div
-                role="menu"
-                aria-label={
-                  `Manage ${image.title}`
+              <button
+                className="image-management-menu-item"
+                type="button"
+                role="menuitem"
+                onClick={
+                  openRename
                 }
-                style={{
-                  position:
-                    'absolute',
-
-                  top:
-                    48,
-
-                  right:
-                    10,
-
-                  zIndex:
-                    4,
-
-                  minWidth:
-                    128,
-
-                  padding:
-                    6,
-
-                  display:
-                    'grid',
-
-                  gap:
-                    3,
-
-                  border:
-                    '1px solid rgba(255,255,255,0.12)',
-
-                  borderRadius:
-                    10,
-
-                  background:
-                    'rgba(15,16,21,0.96)',
-
-                  boxShadow:
-                    '0 14px 36px rgba(0,0,0,0.36)',
-
-                  backdropFilter:
-                    'blur(16px)',
-
-                  pointerEvents:
-                    'auto',
-                }}
               >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4Z" />
+
+                  <path d="m13.5 6.5 4 4" />
+                </svg>
+
+                Rename
+              </button>
+
+              <button
+                className="image-management-menu-item image-management-menu-item-danger"
+                type="button"
+                role="menuitem"
+                onClick={
+                  openDelete
+                }
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M4 7h16" />
+
+                  <path d="M9 7V4h6v3" />
+
+                  <path d="m6 7 1 13h10l1-13" />
+                </svg>
+
+                Delete
+              </button>
+            </div>
+          )}
+
+
+          {managementView ===
+          'rename' && (
+            <form
+              className="image-management-popover image-management-dialog"
+              aria-label={
+                `Rename ${image.title}`
+              }
+              onSubmit={
+                handleRename
+              }
+            >
+              <div className="image-management-dialog-heading">
+                <span>
+                  Rename reference
+                </span>
+
+                <small>
+                  Give this reference a clearer name.
+                </small>
+              </div>
+
+              <input
+                className="image-management-input"
+                type="text"
+                value={
+                  draftTitle
+                }
+                maxLength={
+                  255
+                }
+                disabled={
+                  isManaging
+                }
+                autoFocus
+                onChange={
+                  (
+                    event,
+                  ) =>
+                    setDraftTitle(
+                      event.target.value,
+                    )
+                }
+              />
+
+              {managementError && (
+                <p
+                  className="image-management-error"
+                  role="alert"
+                >
+                  {managementError}
+                </p>
+              )}
+
+              <div className="image-management-actions">
                 <button
+                  className="image-management-secondary"
                   type="button"
-                  role="menuitem"
                   disabled={
                     isManaging
                   }
-                  onClick={() => {
-                    void handleRename()
-                  }}
-                  style={{
-                    padding:
-                      '8px 10px',
-
-                    border:
-                      0,
-
-                    borderRadius:
-                      7,
-
-                    background:
-                      'transparent',
-
-                    color:
-                      '#d6d8df',
-
-                    fontSize:
-                      11,
-
-                    textAlign:
-                      'left',
-
-                    cursor:
-                      'pointer',
-                  }}
+                  onClick={
+                    returnToMenu
+                  }
                 >
-                  Rename
+                  Cancel
                 </button>
 
                 <button
+                  className="image-management-primary"
+                  type="submit"
+                  disabled={
+                    isManaging
+                  }
+                >
+                  {isManaging
+                    ? 'Saving...'
+                    : 'Save'}
+                </button>
+              </div>
+            </form>
+          )}
+
+
+          {managementView ===
+          'delete' && (
+            <div
+              className="image-management-popover image-management-dialog"
+              role="dialog"
+              aria-modal="false"
+              aria-label={
+                `Delete ${image.title}`
+              }
+            >
+              <div className="image-management-dialog-heading">
+                <span>
+                  Delete reference?
+                </span>
+
+                <small>
+                  This will permanently remove
+                  <strong>
+                    {' '}
+                    {image.title}
+                  </strong>
+                  {' '}
+                  from your library and boards.
+                </small>
+              </div>
+
+              {managementError && (
+                <p
+                  className="image-management-error"
+                  role="alert"
+                >
+                  {managementError}
+                </p>
+              )}
+
+              <div className="image-management-actions">
+                <button
+                  className="image-management-secondary"
                   type="button"
-                  role="menuitem"
+                  disabled={
+                    isManaging
+                  }
+                  onClick={
+                    returnToMenu
+                  }
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="image-management-danger"
+                  type="button"
                   disabled={
                     isManaging
                   }
                   onClick={() => {
                     void handleDelete()
                   }}
-                  style={{
-                    padding:
-                      '8px 10px',
-
-                    border:
-                      0,
-
-                    borderRadius:
-                      7,
-
-                    background:
-                      'transparent',
-
-                    color:
-                      '#e58a94',
-
-                    fontSize:
-                      11,
-
-                    textAlign:
-                      'left',
-
-                    cursor:
-                      'pointer',
-                  }}
                 >
-                  Delete
+                  {isManaging
+                    ? 'Deleting...'
+                    : 'Delete'}
                 </button>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      )}
+
 
       <div className="image-card-info">
         <h3>
@@ -404,7 +724,9 @@ export function ImageCard({
               2,
             )
             .map(
-              (tag) => (
+              (
+                tag,
+              ) => (
                 <span
                   key={
                     tag

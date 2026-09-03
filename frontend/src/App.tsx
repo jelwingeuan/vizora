@@ -1,8 +1,16 @@
 import './App.css'
-import { AppLayout } from './components/layout/AppLayout'
+import './interface-polish.css'
+
+import {
+  AppLayout,
+} from './components/layout/AppLayout'
+
 
 function App() {
-  return <AppLayout />
+  return (
+    <AppLayout />
+  )
 }
+
 
 export default App

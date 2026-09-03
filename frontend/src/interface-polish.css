@@ -1,0 +1,546 @@
+/* ========================================
+   Commit 28 — Interface polish
+======================================== */
+
+
+/* ----------------------------------------
+   Remove inactive gallery-view control
+---------------------------------------- */
+
+.gallery-view-button {
+  display: none;
+}
+
+
+/* ----------------------------------------
+   Image management
+---------------------------------------- */
+
+.image-card {
+  position: relative;
+}
+
+
+.image-card-management {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+
+  z-index: 8;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition:
+    opacity 160ms ease;
+}
+
+
+.image-card:hover
+.image-card-management,
+.image-card-management:focus-within,
+.image-card-management-open {
+  opacity: 1;
+
+  pointer-events: auto;
+}
+
+
+.image-card-management
+.image-card-action {
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+
+.image-card-management
+.image-card-action:hover {
+  background:
+    rgba(28, 29, 36, 0.9);
+
+  border-color:
+    rgba(166, 139, 255, 0.34);
+
+  color:
+    #ffffff;
+
+  transform:
+    translateY(-1px);
+}
+
+
+.image-card-management
+.image-card-action:focus-visible {
+  outline:
+    2px solid #8f78ff;
+
+  outline-offset:
+    2px;
+}
+
+
+.image-card-management
+.image-card-action:disabled {
+  opacity: 0.55;
+
+  cursor:
+    wait;
+}
+
+
+/* ----------------------------------------
+   Popover
+---------------------------------------- */
+
+.image-management-popover {
+  position: absolute;
+
+  top: 38px;
+  right: 0;
+
+  z-index: 20;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.1);
+
+  border-radius:
+    12px;
+
+  background:
+    rgba(15, 16, 21, 0.97);
+
+  box-shadow:
+    0 18px 48px
+    rgba(0, 0, 0, 0.46);
+
+  backdrop-filter:
+    blur(18px);
+
+  animation:
+    image-management-in
+    130ms ease;
+}
+
+
+@keyframes image-management-in {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-4px)
+      scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+
+/* ----------------------------------------
+   Management menu
+---------------------------------------- */
+
+.image-management-menu {
+  width: 148px;
+
+  padding: 6px;
+}
+
+
+.image-management-menu-item {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding:
+    8px 10px;
+
+  border: 0;
+  border-radius:
+    8px;
+
+  background:
+    transparent;
+
+  color:
+    #d1d3db;
+
+  font-size:
+    11px;
+  font-weight:
+    500;
+
+  text-align:
+    left;
+
+  cursor:
+    pointer;
+
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+
+.image-management-menu-item:hover {
+  background:
+    rgba(255, 255, 255, 0.055);
+
+  color:
+    #ffffff;
+}
+
+
+.image-management-menu-item:focus-visible {
+  outline:
+    2px solid #8f78ff;
+
+  outline-offset:
+    -2px;
+}
+
+
+.image-management-menu-item svg {
+  width: 14px;
+  height: 14px;
+
+  flex-shrink: 0;
+
+  fill: none;
+
+  stroke:
+    currentColor;
+
+  stroke-width:
+    1.6;
+
+  stroke-linecap:
+    round;
+
+  stroke-linejoin:
+    round;
+}
+
+
+.image-management-menu-item-danger {
+  color:
+    #d9858e;
+}
+
+
+.image-management-menu-item-danger:hover {
+  background:
+    rgba(209, 90, 103, 0.09);
+
+  color:
+    #f2a2aa;
+}
+
+
+/* ----------------------------------------
+   Rename / delete dialogs
+---------------------------------------- */
+
+.image-management-dialog {
+  width:
+    min(
+      260px,
+      calc(100vw - 48px)
+    );
+
+  padding:
+    14px;
+}
+
+
+.image-management-dialog-heading {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  margin-bottom:
+    12px;
+}
+
+
+.image-management-dialog-heading
+span {
+  color:
+    #eeedf3;
+
+  font-size:
+    12px;
+  font-weight:
+    600;
+}
+
+
+.image-management-dialog-heading
+small {
+  color:
+    #6e7380;
+
+  font-size:
+    10px;
+  font-weight:
+    400;
+
+  line-height:
+    1.55;
+}
+
+
+.image-management-dialog-heading
+strong {
+  color:
+    #bfc2cb;
+
+  font-weight:
+    550;
+}
+
+
+.image-management-input {
+  width: 100%;
+
+  padding:
+    9px 10px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.09);
+
+  border-radius:
+    9px;
+
+  outline:
+    none;
+
+  background:
+    rgba(255, 255, 255, 0.035);
+
+  color:
+    #e7e6eb;
+
+  font:
+    inherit;
+
+  font-size:
+    11px;
+
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+
+.image-management-input:hover {
+  background:
+    rgba(255, 255, 255, 0.045);
+}
+
+
+.image-management-input:focus {
+  border-color:
+    rgba(143, 120, 255, 0.58);
+
+  background:
+    rgba(126, 92, 255, 0.055);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(126, 92, 255, 0.08);
+}
+
+
+.image-management-input:disabled {
+  opacity:
+    0.55;
+}
+
+
+.image-management-error {
+  margin:
+    9px 0 0;
+
+  color:
+    #df818d;
+
+  font-size:
+    10px;
+
+  line-height:
+    1.5;
+}
+
+
+/* ----------------------------------------
+   Dialog buttons
+---------------------------------------- */
+
+.image-management-actions {
+  display: flex;
+  justify-content:
+    flex-end;
+
+  gap: 7px;
+
+  margin-top:
+    13px;
+}
+
+
+.image-management-actions
+button {
+  padding:
+    7px 10px;
+
+  border-radius:
+    8px;
+
+  font-size:
+    10px;
+  font-weight:
+    550;
+
+  cursor:
+    pointer;
+
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+
+.image-management-actions
+button:focus-visible {
+  outline:
+    2px solid #8f78ff;
+
+  outline-offset:
+    2px;
+}
+
+
+.image-management-actions
+button:disabled {
+  opacity:
+    0.5;
+
+  cursor:
+    wait;
+}
+
+
+.image-management-secondary {
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.075);
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  color:
+    #858a96;
+}
+
+
+.image-management-secondary:hover:not(
+  :disabled
+) {
+  background:
+    rgba(255, 255, 255, 0.055);
+
+  color:
+    #c9ccd4;
+}
+
+
+.image-management-primary {
+  border:
+    1px solid
+    rgba(143, 112, 255, 0.2);
+
+  background:
+    rgba(126, 92, 255, 0.13);
+
+  color:
+    #c3b8ff;
+}
+
+
+.image-management-primary:hover:not(
+  :disabled
+) {
+  border-color:
+    rgba(143, 112, 255, 0.32);
+
+  background:
+    rgba(126, 92, 255, 0.2);
+
+  color:
+    #e3ddff;
+}
+
+
+.image-management-danger {
+  border:
+    1px solid
+    rgba(215, 92, 104, 0.2);
+
+  background:
+    rgba(202, 71, 84, 0.1);
+
+  color:
+    #e997a0;
+}
+
+
+.image-management-danger:hover:not(
+  :disabled
+) {
+  border-color:
+    rgba(224, 102, 114, 0.34);
+
+  background:
+    rgba(202, 71, 84, 0.16);
+
+  color:
+    #ffb1b8;
+}
+
+
+/* ----------------------------------------
+   Reduced motion
+---------------------------------------- */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .image-management-popover {
+    animation:
+      none;
+  }
+
+  .image-card-management {
+    transition:
+      none;
+  }
+}
