@@ -1,13 +1,21 @@
-from collections.abc import Generator
+import os
+
+from collections.abc import (
+    Generator,
+)
+
 from pathlib import Path
+
+from dotenv import (
+    load_dotenv,
+)
 
 from sqlalchemy import (
     create_engine,
     event,
+    inspect,
     text,
 )
-
-from sqlalchemy.engine import Engine
 
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -22,72 +30,100 @@ PROJECT_ROOT = (
     .parents[3]
 )
 
+
+BACKEND_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[2]
+)
+
+
+load_dotenv(
+    BACKEND_ROOT
+    / ".env",
+)
+
+
 DATABASE_PATH = (
     PROJECT_ROOT
     / "storage"
     / "vizora.db"
 )
 
+
 DATABASE_PATH.parent.mkdir(
     parents=True,
     exist_ok=True,
 )
 
-DATABASE_URL = (
-    f"sqlite:///{DATABASE_PATH.as_posix()}"
+
+DEFAULT_DATABASE_URL = (
+    "sqlite:///"
+    f"{DATABASE_PATH.as_posix()}"
 )
+
+
+configured_database_url = (
+    os.getenv(
+        "DATABASE_URL",
+        "",
+    )
+    .strip()
+)
+
+
+DATABASE_URL = (
+    configured_database_url
+    or DEFAULT_DATABASE_URL
+)
+
+
+engine_options = {}
+
+
+if DATABASE_URL.startswith(
+    "sqlite",
+):
+    engine_options[
+        "connect_args"
+    ] = {
+        "check_same_thread":
+            False,
+    }
 
 
 engine = create_engine(
     DATABASE_URL,
-
-    connect_args={
-        "autocommit": False,
-    },
+    **engine_options,
 )
 
 
-@event.listens_for(
-    Engine,
-    "connect",
-)
 def enable_sqlite_foreign_keys(
     dbapi_connection,
     _,
 ) -> None:
-    previous_autocommit = getattr(
-        dbapi_connection,
-        "autocommit",
-        None,
+    cursor = (
+        dbapi_connection.cursor()
     )
 
     try:
-        if (
-            previous_autocommit
-            is not None
-        ):
-            dbapi_connection.autocommit = True
-
-        cursor = (
-            dbapi_connection.cursor()
+        cursor.execute(
+            "PRAGMA foreign_keys=ON"
         )
 
-        try:
-            cursor.execute(
-                "PRAGMA foreign_keys=ON"
-            )
-
-        finally:
-            cursor.close()
-
     finally:
-        if (
-            previous_autocommit
-            is not None
-        ):
-            dbapi_connection.autocommit = (
-                previous_autocommit
-            )
+        cursor.close()
+
+
+if (
+    engine.url.get_backend_name()
+    == "sqlite"
+):
+    event.listen(
+        engine,
+        "connect",
+        enable_sqlite_foreign_keys,
+    )
 
 
 SessionLocal = sessionmaker(
@@ -108,7 +144,9 @@ def get_db() -> Generator[
     None,
     None,
 ]:
-    database = SessionLocal()
+    database = (
+        SessionLocal()
+    )
 
     try:
         yield database
@@ -118,12 +156,6 @@ def get_db() -> Generator[
 
 
 def initialize_database() -> None:
-    import app.models  # noqa: F401
-
-    Base.metadata.create_all(
-        bind=engine,
-    )
-
     with engine.connect() as connection:
         connection.execute(
             text(
@@ -131,17 +163,59 @@ def initialize_database() -> None:
             )
         )
 
-        foreign_keys_enabled = (
-            connection.exec_driver_sql(
-                "PRAGMA foreign_keys"
+
+        if (
+            connection.dialect.name
+            == "sqlite"
+        ):
+            foreign_keys_enabled = (
+                connection.exec_driver_sql(
+                    "PRAGMA foreign_keys"
+                ).scalar()
+            )
+
+            if (
+                foreign_keys_enabled
+                != 1
+            ):
+                raise RuntimeError(
+                    "SQLite foreign-key "
+                    "enforcement is disabled."
+                )
+
+
+        inspector = (
+            inspect(
+                connection,
+            )
+        )
+
+
+        if not inspector.has_table(
+            "alembic_version",
+        ):
+            raise RuntimeError(
+                "Database migrations have "
+                "not been initialized. "
+                "Run `alembic upgrade head` "
+                "from the backend directory."
+            )
+
+
+        migration_version = (
+            connection.execute(
+                text(
+                    "SELECT version_num "
+                    "FROM alembic_version "
+                    "LIMIT 1"
+                )
             ).scalar()
         )
 
-        if (
-            foreign_keys_enabled
-            != 1
-        ):
+
+        if not migration_version:
             raise RuntimeError(
-                "SQLite foreign-key "
-                "enforcement is disabled."
+                "The database does not have "
+                "an active Alembic revision. "
+                "Run `alembic upgrade head`."
             )
