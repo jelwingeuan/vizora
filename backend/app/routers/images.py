@@ -57,7 +57,14 @@ router = APIRouter(
 )
 
 
-MAX_IMAGE_COUNT = 20
+MAX_IMAGE_COUNT = (
+    20
+)
+
+
+MAX_UPLOAD_REQUEST_SIZE = (
+    40 * 1024 * 1024
+)
 
 
 @router.get(
@@ -158,6 +165,10 @@ def upload_images(
         PendingImageUpload
     ] = []
 
+    total_upload_size = (
+        0
+    )
+
     for image in images:
         mime_type = (
             image.content_type
@@ -217,6 +228,25 @@ def upload_images(
                 ),
             )
 
+        total_upload_size += (
+            len(contents)
+        )
+
+        if (
+            total_upload_size
+            > MAX_UPLOAD_REQUEST_SIZE
+        ):
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_413_CONTENT_TOO_LARGE
+                ),
+
+                detail=(
+                    "Combined upload size "
+                    "must be smaller than 40 MB."
+                ),
+            )
+
         pending_uploads.append(
             PendingImageUpload(
                 original_filename=(
@@ -247,7 +277,10 @@ def upload_images(
             status_code=(
                 status.HTTP_400_BAD_REQUEST
             ),
-            detail=str(error),
+
+            detail=str(
+                error,
+            ),
         ) from error
 
     except ImageStorageError as error:
@@ -255,7 +288,10 @@ def upload_images(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-            detail=str(error),
+
+            detail=str(
+                error,
+            ),
         ) from error
 
     return [
@@ -325,7 +361,10 @@ def rename_image(
             status_code=(
                 status.HTTP_400_BAD_REQUEST
             ),
-            detail=str(error),
+
+            detail=str(
+                error,
+            ),
         ) from error
 
     except ImageStorageError as error:
@@ -333,7 +372,10 @@ def rename_image(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-            detail=str(error),
+
+            detail=str(
+                error,
+            ),
         ) from error
 
     return ImageTitleResponse(
@@ -390,7 +432,10 @@ def delete_image(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-            detail=str(error),
+
+            detail=str(
+                error,
+            ),
         ) from error
 
 
@@ -447,7 +492,10 @@ def update_image_favorite(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-            detail=str(error),
+
+            detail=str(
+                error,
+            ),
         ) from error
 
     return ImageFavoriteResponse(

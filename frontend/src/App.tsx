@@ -1,5 +1,10 @@
 import './App.css'
 import './interface-polish.css'
+import './release-hardening.css'
+
+import {
+  AccessGate,
+} from './components/access/AccessGate'
 
 import {
   AppLayout,
@@ -8,7 +13,9 @@ import {
 
 function App() {
   return (
-    <AppLayout />
+    <AccessGate>
+      <AppLayout />
+    </AccessGate>
   )
 }
 

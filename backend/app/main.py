@@ -20,11 +20,18 @@ from app.core.database import (
     initialize_database,
 )
 
+from app.core.security import (
+    AccessControlMiddleware,
+    RateLimitMiddleware,
+    validate_security_configuration,
+)
+
 from app.core.storage import (
     UPLOADS_DIR,
 )
 
 from app.routers import (
+    access,
     ai,
     boards,
     embeddings,
@@ -49,12 +56,10 @@ def get_allowed_origins() -> list[str]:
         .strip()
     )
 
-
     if not raw_origins:
         return list(
             DEFAULT_ALLOWED_ORIGINS
         )
-
 
     origins = [
         origin
@@ -67,12 +72,10 @@ def get_allowed_origins() -> list[str]:
         if origin.strip()
     ]
 
-
     if not origins:
         return list(
             DEFAULT_ALLOWED_ORIGINS
         )
-
 
     return list(
         dict.fromkeys(
@@ -85,6 +88,8 @@ def get_allowed_origins() -> list[str]:
 async def lifespan(
     _: FastAPI,
 ):
+    validate_security_configuration()
+
     initialize_database()
 
     yield
@@ -101,6 +106,16 @@ app = FastAPI(
     version="0.1.0",
 
     lifespan=lifespan,
+)
+
+
+app.add_middleware(
+    RateLimitMiddleware,
+)
+
+
+app.add_middleware(
+    AccessControlMiddleware,
 )
 
 
@@ -138,6 +153,10 @@ app.mount(
 
 app.include_router(
     health.router,
+)
+
+app.include_router(
+    access.router,
 )
 
 app.include_router(

@@ -3,10 +3,11 @@ import type {
 } from '../types/image'
 
 
-export const mockImages:
+const demoImages:
 VisualReference[] = [
   {
-    id: 'ref-001',
+    id:
+      'ref-001',
 
     title:
       'Quiet Architecture',
@@ -23,19 +24,25 @@ VisualReference[] = [
       'form',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 1200,
+    height:
+      1200,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-002',
+    id:
+      'ref-002',
 
     title:
       'Cinematic Landscape',
@@ -52,19 +59,25 @@ VisualReference[] = [
       'lighting',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 650,
+    height:
+      650,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-003',
+    id:
+      'ref-003',
 
     title:
       'Character Study',
@@ -81,19 +94,25 @@ VisualReference[] = [
       'mood',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 1250,
+    height:
+      1250,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-004',
+    id:
+      'ref-004',
 
     title:
       'Material & Texture',
@@ -110,19 +129,25 @@ VisualReference[] = [
       'detail',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 780,
+    height:
+      780,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-005',
+    id:
+      'ref-005',
 
     title:
       'Night Atmosphere',
@@ -139,19 +164,25 @@ VisualReference[] = [
       'color',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 1350,
+    height:
+      1350,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-006',
+    id:
+      'ref-006',
 
     title:
       'Editorial Composition',
@@ -168,19 +199,25 @@ VisualReference[] = [
       'composition',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 1000,
+    height:
+      1000,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-007',
+    id:
+      'ref-007',
 
     title:
       'Natural Palette',
@@ -197,19 +234,25 @@ VisualReference[] = [
       'organic',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 700,
+    height:
+      700,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-008',
+    id:
+      'ref-008',
 
     title:
       'Urban Study',
@@ -226,19 +269,25 @@ VisualReference[] = [
       'structure',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 1150,
+    height:
+      1150,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-009',
+    id:
+      'ref-009',
 
     title:
       'Soft Lighting',
@@ -255,19 +304,25 @@ VisualReference[] = [
       'photography',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 820,
+    height:
+      820,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-010',
+    id:
+      'ref-010',
 
     title:
       'Visual Rhythm',
@@ -284,19 +339,25 @@ VisualReference[] = [
       'composition',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 1300,
+    height:
+      1300,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-011',
+    id:
+      'ref-011',
 
     title:
       'Color Exploration',
@@ -313,19 +374,25 @@ VisualReference[] = [
       'palette',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 680,
+    height:
+      680,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 
   {
-    id: 'ref-012',
+    id:
+      'ref-012',
 
     title:
       'Environmental Mood',
@@ -342,14 +409,36 @@ VisualReference[] = [
       'world',
     ],
 
-    width: 900,
+    width:
+      900,
 
-    height: 1080,
+    height:
+      1080,
 
-    source: 'mock',
+    source:
+      'mock',
 
-    isFavorite: false,
+    isFavorite:
+      false,
 
-    createdAt: null,
+    createdAt:
+      null,
   },
 ]
+
+
+const shouldShowDemoImages =
+  (
+    import.meta.env.DEV
+    ||
+    import.meta.env
+      .VITE_ENABLE_MOCK_IMAGES
+      === 'true'
+  )
+
+
+export const mockImages:
+VisualReference[] =
+  shouldShowDemoImages
+    ? demoImages
+    : []

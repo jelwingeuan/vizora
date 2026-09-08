@@ -36,6 +36,7 @@ async def run_semantic_search(
             status_code=(
                 status.HTTP_400_BAD_REQUEST
             ),
+
             detail=(
                 "Search query cannot be empty."
             ),
@@ -56,7 +57,10 @@ async def run_semantic_search(
             status_code=(
                 status.HTTP_503_SERVICE_UNAVAILABLE
             ),
-            detail=str(error),
+
+            detail=str(
+                error,
+            ),
         ) from error
 
     except SemanticSearchError as error:
@@ -64,5 +68,8 @@ async def run_semantic_search(
             status_code=(
                 status.HTTP_502_BAD_GATEWAY
             ),
-            detail=str(error),
+
+            detail=str(
+                error,
+            ),
         ) from error

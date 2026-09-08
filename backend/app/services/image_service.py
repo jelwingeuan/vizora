@@ -1,7 +1,18 @@
-from dataclasses import dataclass
-from io import BytesIO
-from pathlib import Path
-from uuid import uuid4
+from dataclasses import (
+    dataclass,
+)
+
+from io import (
+    BytesIO,
+)
+
+from pathlib import (
+    Path,
+)
+
+from uuid import (
+    uuid4,
+)
 
 from PIL import (
     Image as PillowImage,
@@ -27,6 +38,16 @@ from app.models.image import (
 
 MAX_IMAGE_SIZE = (
     15 * 1024 * 1024
+)
+
+
+MAX_IMAGE_DIMENSION = (
+    12_000
+)
+
+
+MAX_IMAGE_PIXELS = (
+    40_000_000
 )
 
 
@@ -362,7 +383,6 @@ def persist_uploaded_images(
 
                 storage_path=(
                     Path(
-                        "storage",
                         "uploads",
                         stored_filename,
                     ).as_posix()
@@ -436,12 +456,51 @@ def inspect_image(
                 image.size
             )
 
+            if (
+                width <= 0
+                or height <= 0
+            ):
+                raise ImageValidationError(
+                    "The image has invalid dimensions."
+                )
+
+            if (
+                width
+                > MAX_IMAGE_DIMENSION
+                or height
+                > MAX_IMAGE_DIMENSION
+            ):
+                raise ImageValidationError(
+                    "Image dimensions must not "
+                    "exceed 12000 pixels per side."
+                )
+
+            if (
+                width
+                * height
+                > MAX_IMAGE_PIXELS
+            ):
+                raise ImageValidationError(
+                    "Images must contain no more "
+                    "than 40 megapixels."
+                )
+
             image_format = (
                 image.format
                 or ""
             ).upper()
 
             image.verify()
+
+    except ImageValidationError:
+        raise
+
+    except (
+        PillowImage.DecompressionBombError
+    ) as error:
+        raise ImageValidationError(
+            "The image dimensions are too large."
+        ) from error
 
     except (
         UnidentifiedImageError,
@@ -463,14 +522,6 @@ def inspect_image(
         raise ImageValidationError(
             "Only JPG, PNG, and WebP "
             "images are supported."
-        )
-
-    if (
-        width <= 0
-        or height <= 0
-    ):
-        raise ImageValidationError(
-            "The image has invalid dimensions."
         )
 
     return (
