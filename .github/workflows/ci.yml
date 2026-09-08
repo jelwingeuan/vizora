@@ -42,6 +42,10 @@ jobs:
         run: |
           python -m compileall app tests
 
+      - name: Validate production start script
+        run: |
+          bash -n start-production.sh
+
       - name: Run migrations
         env:
           ALEMBIC_DATABASE_URL: sqlite:///./ci-vizora.db
@@ -76,6 +80,10 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Validate Vercel configuration
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('vercel.json', 'utf8')); console.log('vercel.json valid')"
 
       - name: Run frontend tests
         run: npm test

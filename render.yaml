@@ -1,0 +1,78 @@
+services:
+  - type: web
+    name: vizora-api
+    runtime: python
+
+    region: singapore
+    plan: starter
+
+    rootDir: backend
+
+    buildCommand: >
+      python -m pip install --upgrade pip &&
+      python -m pip install -r requirements.txt
+
+    startCommand: bash start-production.sh
+
+    healthCheckPath: /api/health
+
+    autoDeployTrigger: checksPass
+
+    numInstances: 1
+
+    disk:
+      name: vizora-data
+      mountPath: /var/data/vizora
+      sizeGB: 1
+
+    envVars:
+      - key: APP_ENV
+        value: production
+
+      - key: PYTHON_VERSION
+        value: 3.12.11
+
+      - key: DATABASE_URL
+        value: sqlite:////var/data/vizora/vizora.db
+
+      - key: VIZORA_STORAGE_DIR
+        value: /var/data/vizora
+
+      - key: VIZORA_RATE_LIMITING_ENABLED
+        value: "true"
+
+      - key: VIZORA_AI_RATE_LIMIT_PER_MINUTE
+        value: "12"
+
+      - key: VIZORA_SEARCH_RATE_LIMIT_PER_MINUTE
+        value: "10"
+
+      - key: VIZORA_EMBEDDING_RATE_LIMIT_PER_MINUTE
+        value: "240"
+
+      - key: VIZORA_UPLOAD_RATE_LIMIT_PER_MINUTE
+        value: "6"
+
+      - key: GEMINI_VISION_MODEL
+        value: gemini-3.5-flash-lite
+
+      - key: GEMINI_EMBEDDING_MODEL
+        value: gemini-embedding-001
+
+      - key: GEMINI_IMAGE_EMBEDDING_MODEL
+        value: gemini-embedding-2
+
+      - key: SEMANTIC_SEARCH_MIN_SCORE
+        value: "0.42"
+
+      - key: SEMANTIC_SEARCH_SCORE_WINDOW
+        value: "0.18"
+
+      - key: VIZORA_ACCESS_TOKEN
+        sync: false
+
+      - key: GEMINI_API_KEY
+        sync: false
+
+      - key: CORS_ORIGINS
+        sync: false
