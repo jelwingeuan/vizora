@@ -2,49 +2,60 @@
 
 > An AI-powered visual intelligence workspace for collecting, understanding, organizing, and discovering creative references.
 
-VIZORA is a visual reference management platform designed for creatives. It combines image organization with AI-powered analysis, semantic search, and visual similarity discovery to help turn a collection of references into a more intelligent creative workspace.
+[![CI](https://github.com/jelwingeuan/vizora/actions/workflows/ci.yml/badge.svg)](https://github.com/jelwingeuan/vizora/actions/workflows/ci.yml)
 
-> **Status:** Active development / testing
+VIZORA is a visual reference management platform built for creatives.
+
+It combines persistent image organization with AI-powered visual analysis, semantic search, multimodal embeddings, similarity discovery, and visual boards — turning a normal reference library into an intelligent creative workspace.
+
+> **Status:** v1.0 pre-release  
+> **Deployment:** Prepared, not currently deployed
 
 ---
 
-## Overview
+## What VIZORA Does
 
-Creative references often end up scattered across folders, screenshots, moodboards, and bookmarks.
+Creative references often end up scattered across folders, screenshots, bookmarks, moodboards, and browser tabs.
 
 VIZORA brings them into one workspace where users can:
 
 - collect and manage visual references
 - analyze images with AI
-- generate useful visual tags and insights
+- generate visual tags and creative insights
 - search references using natural language
 - discover visually similar images
 - organize references into boards
-- favorite and revisit important images
+- save favorites
+- revisit recent uploads
+- rename and delete persisted references
 
-The goal is to build a workspace that does more than store images — it helps users understand and rediscover them.
+The goal is not just to store images, but to make a visual library easier to understand, search, and rediscover.
 
 ---
 
-## Features
+# Features
 
-### Visual Library
+## Visual Library
 
-Upload and manage image references in a persistent visual library.
+Upload and manage visual references in a persistent library.
 
 - JPG, PNG, and WebP support
-- masonry-style image gallery
-- persistent local image storage
+- visual gallery
+- persistent image storage
 - recent uploads
 - favorites
-- image rename and delete
+- rename and delete
 - image detail panel
+- upload validation and size limits
+- protected production access
 
-### AI Visual Analysis
+---
 
-Analyze references using Google Gemini.
+## AI Visual Analysis
 
-VIZORA can generate information such as:
+VIZORA uses Google Gemini to understand uploaded references.
+
+AI analysis can generate:
 
 - subject
 - visual style
@@ -56,11 +67,13 @@ VIZORA can generate information such as:
 - creative notes
 - summary
 
-Analysis generated for uploaded images is persisted and restored when the application is reopened.
+Analysis for uploaded images is persisted in the database and restored when the workspace is reopened.
 
-### Semantic Search
+---
 
-Search the library using natural language instead of relying only on filenames or manually entered tags.
+## Semantic Search
+
+Search the visual library using natural language instead of depending only on filenames or manual tags.
 
 Examples:
 
@@ -71,26 +84,40 @@ minimal architecture
 cinematic neon lighting
 ```
 
-VIZORA combines image metadata and AI-generated analysis to improve search relevance.
+VIZORA combines reference metadata with AI-generated analysis to create richer searchable descriptions.
 
-### Visual Similarity Discovery
+Search results use:
 
-Find references that are visually similar to a selected image using multimodal image embeddings.
+- text embeddings
+- semantic similarity
+- lexical relevance
+- title relevance
+- configurable minimum scores
+- adaptive score filtering
 
-The similarity system includes:
+---
 
-- persisted embeddings for uploaded images
+## Visual Similarity Discovery
+
+Select a reference and discover other images with similar visual characteristics.
+
+The system includes:
+
+- multimodal image embeddings
+- persisted embeddings for uploaded references
 - cosine similarity ranking
 - minimum similarity thresholds
 - adaptive result filtering
-- batched embedding processing
-- client-side embedding caching
+- batched embedding generation
+- frontend embedding caching
 
-Weak visual matches are filtered instead of always returning a fixed number of results.
+Weak matches are filtered instead of always returning a fixed number of results.
 
-### Boards
+---
 
-Organize uploaded references into reusable visual boards.
+## Boards
+
+Organize references into visual collections.
 
 Users can:
 
@@ -100,51 +127,111 @@ Users can:
 - view board collections
 - persist board membership
 
-### Discover
-
-A dedicated discovery workspace for exploring references through AI-assisted search and visual relationships.
+Deleting an uploaded reference automatically cleans its board memberships.
 
 ---
 
-## Tech Stack
+## Discover
 
-### Frontend
+The Discover workspace provides an AI-assisted way to explore references through:
+
+- semantic discovery
+- image analysis
+- generated tags
+- visual similarity
+- creative relationships between references
+
+---
+
+## Favorites & Recent
+
+Uploaded references can be marked as favorites and restored after refresh.
+
+Recent displays persisted uploads from newest to oldest.
+
+---
+
+## Image Management
+
+Uploaded references support:
+
+- rename
+- delete
+- persistent metadata updates
+- physical file cleanup
+- database cascade cleanup
+
+Delete operations remove related:
+
+```text
+Image
+├── AI analysis
+├── embedding
+├── board memberships
+└── stored image file
+```
+
+---
+
+# Technology
+
+## Frontend
 
 - React
 - TypeScript
 - Vite
 - CSS
+- Vitest
+- React Testing Library
 
-### Backend
+## Backend
 
 - Python
 - FastAPI
 - SQLAlchemy
+- Alembic
 - SQLite
 - Pillow
+- Pytest
 
-### AI
+## AI
 
 - Google Gemini
 - Gemini Vision
-- Text embeddings
-- Multimodal image embeddings
+- text embeddings
+- multimodal image embeddings
+
+## Infrastructure
+
+- GitHub Actions
+- Vercel configuration
+- Render configuration
+- persistent storage support
+- environment-based production configuration
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```text
 vizora/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+│
 ├── backend/
+│   ├── alembic/
 │   ├── app/
 │   │   ├── core/
 │   │   ├── models/
 │   │   ├── routers/
 │   │   ├── schemas/
 │   │   └── services/
+│   ├── tests/
 │   ├── .env.example
 │   ├── requirements.txt
+│   ├── requirements-dev.txt
+│   ├── start-production.sh
 │   └── pyproject.toml
 │
 ├── frontend/
@@ -152,22 +239,27 @@ vizora/
 │   │   ├── components/
 │   │   ├── data/
 │   │   ├── services/
+│   │   ├── test/
 │   │   ├── types/
 │   │   └── utils/
+│   ├── .env.example
+│   ├── .env.production.example
+│   ├── vercel.json
 │   └── package.json
 │
 ├── storage/
-│   ├── uploads/
-│   └── vizora.db
+│   └── uploads/
 │
+├── DEPLOYMENT.md
+├── render.yaml
 └── README.md
 ```
 
 ---
 
-## Getting Started
+# Local Development
 
-### 1. Clone the repository
+## 1. Clone the repository
 
 ```bash
 git clone https://github.com/jelwingeuan/vizora.git
@@ -177,9 +269,9 @@ cd vizora
 
 ---
 
-## Backend Setup
+# Backend Setup
 
-### 2. Create a Python virtual environment
+## 2. Create a virtual environment
 
 ```bash
 cd backend
@@ -189,49 +281,75 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Install backend dependencies
+## 3. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 ```
 
-### 4. Configure environment variables
+## 4. Configure environment variables
 
-Create your local `.env` file from the provided example:
+Create:
 
 ```bash
 cp .env.example .env
 ```
 
-Then add your own Gemini API key inside:
+Then configure your private Gemini API key inside `backend/.env`.
+
+Example:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
+APP_ENV=development
+
+GEMINI_API_KEY=your_private_gemini_api_key
 ```
 
-Do not commit your real API key.
+Never commit the real key.
 
-### 5. Start the backend
+---
+
+## 5. Apply database migrations
+
+```bash
+python -m alembic upgrade head
+```
+
+Check migration state:
+
+```bash
+python -m alembic check
+```
+
+---
+
+## 6. Start the backend
 
 ```bash
 fastapi dev
 ```
 
-The API will normally run at:
+Default API:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-FastAPI documentation:
+API documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
+Health check:
+
+```text
+http://127.0.0.1:8000/api/health
+```
+
 ---
 
-## Frontend Setup
+# Frontend Setup
 
 Open another terminal:
 
@@ -243,7 +361,7 @@ npm install
 npm run dev
 ```
 
-The frontend will normally run at:
+Default frontend:
 
 ```text
 http://localhost:5173
@@ -251,124 +369,317 @@ http://localhost:5173
 
 ---
 
-## Development Commands
+# Testing
 
-### Frontend
+## Backend
 
 ```bash
-npm run dev
+cd backend
+
+source .venv/bin/activate
+
+python -m compileall app tests
+
+python -m alembic check
+
+python -m pytest -q
+```
+
+Backend tests cover areas including:
+
+- health
+- image uploads
+- image persistence
+- rename
+- favorites
+- boards
+- cascade deletion
+- physical file cleanup
+- security
+- rate limiting
+- application route registration
+
+---
+
+## Frontend
+
+```bash
+cd frontend
+
+npm test
+
 npm run build
+
 npm run lint
 ```
 
-### Backend
+Frontend tests cover areas including:
+
+- similarity ranking
+- tag normalization
+- image management
+- favorites
+- detail panel behavior
+- access protection UI
+- error handling
+
+---
+
+# Continuous Integration
+
+GitHub Actions automatically runs checks for pushes to `main` and pull requests.
+
+The CI pipeline validates:
+
+```text
+Backend
+├── dependency installation
+├── Python compilation
+├── production startup script syntax
+├── Alembic migrations
+├── migration consistency
+└── backend tests
+
+Frontend
+├── dependency installation
+├── Vercel configuration
+├── frontend tests
+├── production build
+└── ESLint
+```
+
+A change should not be considered release-ready until CI passes.
+
+---
+
+# Security
+
+VIZORA v1.0 is currently designed as a **single-owner workspace**.
+
+Production mode supports an owner access token.
+
+Protected requests use:
+
+```text
+X-Vizora-Token
+```
+
+The production token:
+
+- is never committed
+- is never stored in a `VITE_*` environment variable
+- is not compiled into the frontend
+- is stored only for the current browser session
+
+Production mode also includes configurable rate limits for:
+
+- AI analysis
+- semantic search
+- embeddings
+- image uploads
+
+The health endpoint remains public for infrastructure health checks.
+
+---
+
+## Secrets
+
+Backend-only secrets include:
+
+```text
+GEMINI_API_KEY
+VIZORA_ACCESS_TOKEN
+```
+
+Keep them in private environment configuration.
+
+Never place backend secrets inside:
+
+```text
+VITE_*
+```
+
+because Vite environment variables are included in frontend builds.
+
+---
+
+# Storage
+
+## Development
+
+Local data uses:
+
+```text
+storage/vizora.db
+storage/uploads/
+```
+
+These are excluded from Git.
+
+## Production
+
+The storage directory can be changed using:
+
+```env
+VIZORA_STORAGE_DIR=
+```
+
+This allows VIZORA to use persistent mounted storage when deployed.
+
+---
+
+# Database
+
+VIZORA currently uses SQLite.
+
+Database schema changes are managed with Alembic.
+
+After modifying SQLAlchemy models:
 
 ```bash
-source .venv/bin/activate
+python -m alembic revision --autogenerate -m "describe change"
 
-python -m compileall app
+python -m alembic upgrade head
 
-fastapi dev
+python -m alembic check
 ```
 
 ---
 
-## Current Development Progress
+# Deployment
 
-### Completed
+Deployment configuration is prepared but **VIZORA has not been deployed yet**.
 
-- [x] React + TypeScript frontend
+The current v1.0 target architecture is:
+
+```text
+Frontend
+React + Vite
+     ↓
+Vercel
+
+Backend
+FastAPI
+     ↓
+Render
+
+Data
+SQLite + uploaded images
+     ↓
+Persistent storage
+```
+
+Deployment can be configured manually.
+
+The repository also contains infrastructure configuration that may be used later for automated deployment, but using a Render Blueprint is **optional**.
+
+See:
+
+```text
+DEPLOYMENT.md
+```
+
+for deployment notes.
+
+---
+
+# v1.0 Progress
+
+## Completed
+
+- [x] React + TypeScript workspace
 - [x] FastAPI backend
 - [x] SQLite persistence
+- [x] Alembic migrations
 - [x] image uploads
 - [x] persistent image library
 - [x] AI image analysis
+- [x] persisted AI analysis
 - [x] AI-generated tags
-- [x] persisted image analysis
 - [x] semantic search
 - [x] text embeddings
 - [x] multimodal image embeddings
 - [x] persisted image embeddings
 - [x] visual similarity discovery
+- [x] similarity filtering and batching
 - [x] Discover workspace
-- [x] board system
+- [x] boards
 - [x] images inside boards
 - [x] favorites
 - [x] recent uploads
-- [x] image rename and delete
-- [x] improved similarity filtering and batching
+- [x] image rename
+- [x] image deletion
+- [x] physical file cleanup
+- [x] database cascade cleanup
+- [x] UX and image-management polish
+- [x] backend automated tests
+- [x] frontend automated tests
+- [x] GitHub Actions CI
+- [x] API access protection
+- [x] rate limiting
+- [x] upload hardening
+- [x] configurable storage
+- [x] production configuration
+- [x] deployment configuration prepared
 
-### Next
+## Remaining Before v1.0.0
 
-- [ ] interface and UX polish
-- [ ] backend automated tests
-- [ ] frontend automated tests
-- [ ] database migrations with Alembic
-- [ ] CI workflow
-- [ ] dependency and environment cleanup
-- [ ] deployment preparation
-
----
-
-## Data & Storage
-
-VIZORA currently uses SQLite for local persistence.
-
-Uploaded image files are stored locally under:
-
-```text
-storage/uploads/
-```
-
-The local database is stored under:
-
-```text
-storage/vizora.db
-```
-
-Local uploads, databases, environment variables, and secrets are excluded from Git tracking.
+- [ ] deploy backend
+- [ ] deploy frontend
+- [ ] configure production CORS
+- [ ] confirm persistent storage
+- [ ] run production smoke test
+- [ ] verify AI in production
+- [ ] verify no production secrets are committed
+- [ ] update application version to `1.0.0`
+- [ ] create `v1.0.0` release tag
 
 ---
 
-## Security
-
-Never commit your real Gemini API key.
-
-Keep secrets inside:
+# Current Release Path
 
 ```text
-backend/.env
+Commit 32
+v1 release hardening
+        ✅
+
+Commit 33
+deployment configuration
+        ✅
+
+Manual deployment
+        ↓
+production smoke test
+        ↓
+final release preparation
+        ↓
+VIZORA v1.0.0
 ```
-
-The repository only includes:
-
-```text
-backend/.env.example
-```
-
-with placeholder configuration values.
 
 ---
 
-## Project Direction
+# Project Direction
 
-VIZORA is currently being developed as a visual intelligence system rather than a traditional image gallery.
+VIZORA is being developed as a visual intelligence system rather than a traditional image gallery.
 
-Future development will focus on:
+After v1.0, possible areas of development include:
 
-- stronger search and discovery
-- better visual relationship tools
-- scalable persistence
-- testing and reliability
-- production-ready infrastructure
-- improved creative workflows
+- PostgreSQL
+- object storage
+- user accounts
+- multi-user libraries
+- stronger discovery systems
+- larger semantic indexes
+- improved board workflows
+- end-to-end testing
+- scalable cloud infrastructure
 
 ---
 
-## Repository
+# Repository
 
 **VIZORA**
 
 AI-powered visual intelligence for creative references.
 
-Built with React, TypeScript, FastAPI, SQLite, and Google Gemini.
+Built with React, TypeScript, FastAPI, SQLAlchemy, SQLite, Alembic, and Google Gemini.
