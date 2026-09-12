@@ -4,6 +4,11 @@ from pydantic import (
 )
 
 
+MAX_SEMANTIC_SEARCH_ITEMS = (
+    250
+)
+
+
 class SemanticSearchItem(
     BaseModel,
 ):
@@ -35,7 +40,9 @@ class SemanticSearchRequest(
         SemanticSearchItem
     ] = Field(
         min_length=1,
-        max_length=100,
+        max_length=(
+            MAX_SEMANTIC_SEARCH_ITEMS
+        ),
     )
 
 
