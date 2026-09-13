@@ -27,7 +27,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12.11"
           cache: pip
           cache-dependency-path: |
             backend/requirements.txt
@@ -37,6 +37,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
+
+      - name: Audit backend dependencies
+        run: |
+          python -m pip_audit -r requirements.txt
 
       - name: Compile backend
         run: |
@@ -80,6 +84,9 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Audit frontend production dependencies
+        run: npm run audit
 
       - name: Validate Vercel configuration
         run: |
