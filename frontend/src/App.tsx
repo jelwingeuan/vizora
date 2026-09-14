@@ -1,6 +1,7 @@
 import './App.css'
 import './interface-polish.css'
 import './release-hardening.css'
+import './navigation-polish.css'
 
 import {
   AccessGate,

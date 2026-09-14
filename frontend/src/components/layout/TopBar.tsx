@@ -2,19 +2,26 @@ import type {
   FormEvent,
 } from 'react'
 
+
 type TopBarProps = {
-  title: string
+  title:
+    string
 
-  searchQuery: string
+  searchQuery:
+    string
 
-  isSearching: boolean
+  isSearching:
+    boolean
 
   onSearchQueryChange: (
-    query: string,
+    query:
+      string,
   ) => void
 
-  onSearch: () => Promise<void>
+  onSearch:
+    () => Promise<void>
 }
+
 
 export function TopBar({
   title,
@@ -23,8 +30,13 @@ export function TopBar({
   onSearchQueryChange,
   onSearch,
 }: TopBarProps) {
+  const isLibrary =
+    title ===
+    'Library'
+
   function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault()
 
@@ -33,60 +45,100 @@ export function TopBar({
 
   return (
     <header className="topbar">
-      <div className="topbar-title">
-        <span>
-          {title}
+      <div className="topbar-context">
+        <span className="topbar-context-label">
+          Workspace
         </span>
+
+        <div className="topbar-title">
+          <span>
+            {title}
+          </span>
+
+          <span
+            className="topbar-title-status"
+            aria-hidden="true"
+          />
+        </div>
       </div>
 
       <div className="topbar-actions">
-        <form
-          className="semantic-search"
-          role="search"
-          onSubmit={handleSubmit}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            aria-hidden="true"
+        <div className="topbar-search-group">
+          {!isLibrary && (
+            <span className="topbar-search-scope">
+              Searches Library
+            </span>
+          )}
+
+          <form
+            className="semantic-search"
+            role="search"
+            onSubmit={handleSubmit}
           >
-            <circle
-              cx="11"
-              cy="11"
-              r="6"
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="6"
+              />
+
+              <path d="m16 16 4 4" />
+            </svg>
+
+            <input
+              type="search"
+              value={searchQuery}
+              placeholder="Search Library by meaning..."
+              aria-label="Search the visual library by meaning"
+              onChange={(
+                event,
+              ) =>
+                onSearchQueryChange(
+                  event
+                    .target
+                    .value,
+                )
+              }
             />
 
-            <path d="m16 16 4 4" />
-          </svg>
-
-          <input
-            type="search"
-            value={searchQuery}
-            placeholder="Search by meaning..."
-            aria-label="Semantic search"
-            onChange={(event) =>
-              onSearchQueryChange(
-                event.target.value,
-              )
-            }
-          />
-
-          {searchQuery && (
-            <button
-              type="submit"
-              disabled={isSearching}
-            >
-              {isSearching
-                ? 'Searching...'
-                : 'Search'}
-            </button>
-          )}
-        </form>
+            {searchQuery && (
+              <button
+                type="submit"
+                disabled={
+                  isSearching
+                }
+              >
+                {isSearching
+                  ? 'Searching...'
+                  : 'Search'}
+              </button>
+            )}
+          </form>
+        </div>
 
         <div
-          className="user-avatar"
-          aria-label="VIZORA user"
+          className="user-chip"
+          aria-label="Private VIZORA workspace"
         >
-          V
+          <div
+            className="user-avatar"
+            aria-hidden="true"
+          >
+            V
+          </div>
+
+          <div className="user-chip-copy">
+            <span>
+              Owner
+            </span>
+
+            <small>
+              Private workspace
+            </small>
+          </div>
         </div>
       </div>
     </header>
