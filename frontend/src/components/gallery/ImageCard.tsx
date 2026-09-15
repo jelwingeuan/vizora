@@ -102,6 +102,20 @@ export function ImageCard({
     )
 
 
+  const visibleTags =
+    image.tags.slice(
+      0,
+      2,
+    )
+
+  const remainingTagCount =
+    Math.max(
+      image.tags.length
+      - visibleTags.length,
+      0,
+    )
+
+
   useEffect(() => {
     if (
       managementView ===
@@ -125,7 +139,10 @@ export function ImageCard({
         event.target
 
       if (
-        !(target instanceof Node)
+        !(
+          target instanceof
+          Node
+        )
       ) {
         return
       }
@@ -412,6 +429,10 @@ export function ImageCard({
           isSelected
             ? 'image-card-selected'
             : ''
+        } ${
+          image.isFavorite
+            ? 'image-card-favorite'
+            : ''
         }`
       }
     >
@@ -433,6 +454,9 @@ export function ImageCard({
           aria-label={
             `Open ${image.title}`
           }
+          aria-pressed={
+            isSelected
+          }
         >
           <img
             src={
@@ -444,6 +468,46 @@ export function ImageCard({
             loading="lazy"
           />
         </button>
+
+
+        <div
+          className="image-card-badges"
+          aria-hidden="true"
+        >
+          {image.isFavorite && (
+            <span className="image-card-favorite-badge">
+              <svg
+                viewBox="0 0 24 24"
+              >
+                <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" />
+              </svg>
+
+              Favorite
+            </span>
+          )}
+
+          {isSelected && (
+            <span className="image-card-selected-badge">
+              Selected
+            </span>
+          )}
+        </div>
+
+
+        <div
+          className="image-card-hover-cue"
+          aria-hidden="true"
+        >
+          <span>
+            View reference
+          </span>
+
+          <svg
+            viewBox="0 0 24 24"
+          >
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </div>
       </div>
 
 
@@ -593,13 +657,14 @@ export function ImageCard({
                   isManaging
                 }
                 autoFocus
-                onChange={
-                  (
-                    event,
-                  ) =>
-                    setDraftTitle(
-                      event.target.value,
-                    )
+                onChange={(
+                  event,
+                ) =>
+                  setDraftTitle(
+                    event
+                      .target
+                      .value,
+                  )
                 }
               />
 
@@ -713,29 +778,58 @@ export function ImageCard({
 
 
       <div className="image-card-info">
-        <h3>
-          {image.title}
-        </h3>
+        <div className="image-card-heading-row">
+          <h3
+            title={
+              image.title
+            }
+          >
+            {image.title}
+          </h3>
+        </div>
+
+        <div className="image-card-meta">
+          <span>
+            {image.source ===
+            'upload'
+              ? 'Uploaded'
+              : 'Reference'}
+          </span>
+
+          <span
+            className="image-card-meta-divider"
+            aria-hidden="true"
+          />
+
+          <span>
+            {image.width}
+            ×
+            {image.height}
+          </span>
+        </div>
 
         <div className="image-card-tags">
-          {image.tags
-            .slice(
-              0,
-              2,
-            )
-            .map(
-              (
-                tag,
-              ) => (
-                <span
-                  key={
-                    tag
-                  }
-                >
-                  {tag}
-                </span>
-              ),
-            )}
+          {visibleTags.map(
+            (
+              tag,
+            ) => (
+              <span
+                key={
+                  tag
+                }
+              >
+                {tag}
+              </span>
+            ),
+          )}
+
+          {remainingTagCount >
+            0 && (
+            <span className="image-card-tag-more">
+              +
+              {remainingTagCount}
+            </span>
+          )}
         </div>
       </div>
     </article>
