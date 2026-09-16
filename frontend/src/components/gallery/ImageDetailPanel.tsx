@@ -121,7 +121,9 @@ export function ImageDetailPanel({
         handleKeyDown,
       )
     }
-  }, [onClose])
+  }, [
+    onClose,
+  ])
 
 
   async function handleAnalyze() {
@@ -191,7 +193,8 @@ export function ImageDetailPanel({
   async function handleFavorite() {
     if (
       !onSetFavorite
-      || image.source !== 'upload'
+      || image.source !==
+        'upload'
     ) {
       return
     }
@@ -240,15 +243,16 @@ export function ImageDetailPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby="image-detail-title"
-        onClick={
-          (event) =>
-            event.stopPropagation()
+        onClick={(
+          event,
+        ) =>
+          event.stopPropagation()
         }
       >
         <header className="detail-panel-header">
-          <div>
+          <div className="detail-panel-header-copy">
             <span className="detail-panel-eyebrow">
-              Visual reference
+              Reference details
             </span>
 
             <span className="detail-panel-id">
@@ -276,70 +280,88 @@ export function ImageDetailPanel({
           </button>
         </header>
 
+
         <div className="detail-panel-scroll">
-          <div
-            className="detail-preview"
-            style={{
-              aspectRatio:
-                `${image.width} / ${image.height}`,
-            }}
-          >
-            <img
-              src={
-                image.src
-              }
-              alt={
-                image.alt
-              }
-            />
-          </div>
+          <section className="detail-hero">
+            <div
+              className="detail-preview"
+              style={{
+                aspectRatio:
+                  `${image.width} / ${image.height}`,
+              }}
+            >
+              <img
+                src={
+                  image.src
+                }
+                alt={
+                  image.alt
+                }
+              />
 
-          <section className="detail-title-section">
-            <h2 id="image-detail-title">
-              {image.title}
-            </h2>
+              <div className="detail-preview-badges">
+                <span className="detail-preview-source">
+                  {image.source ===
+                  'upload'
+                    ? 'Uploaded'
+                    : 'Demo'}
+                </span>
 
-            <p>
-              {image.source === 'upload'
-                ? (
-                    'Visual reference saved in your VIZORA library.'
-                  )
-                : (
-                    'Demo visual reference available for exploration.'
+                {image.isFavorite && (
+                  <span className="detail-preview-favorite">
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" />
+                    </svg>
+
+                    Favorite
+                  </span>
+                )}
+              </div>
+            </div>
+
+
+            <div className="detail-title-section">
+              <div className="detail-title-heading">
+                <h2 id="image-detail-title">
+                  {image.title}
+                </h2>
+
+                <span className="detail-orientation-pill">
+                  {getOrientation(
+                    image,
                   )}
-            </p>
-          </section>
+                </span>
+              </div>
+
+              <p>
+                {image.source ===
+                'upload'
+                  ? (
+                      'Saved visual reference in your VIZORA library.'
+                    )
+                  : (
+                      'Demo visual reference available for exploration.'
+                    )}
+              </p>
+            </div>
 
 
-          {(
-            image.source ===
-            'upload'
-          ) && onSetFavorite && (
-            <section className="detail-section">
-              <div className="ai-section-heading">
-                <div>
-                  <span className="detail-section-label">
-                    Library
-                  </span>
-
-                  <span
-                    className={
-                      image.isFavorite
-                        ? (
-                            'ai-status '
-                            + 'ai-status-complete'
-                          )
-                        : 'ai-status'
-                    }
-                  >
-                    {image.isFavorite
-                      ? 'Favorited'
-                      : 'Not favorited'}
-                  </span>
-                </div>
-
+            <div className="detail-primary-actions">
+              {(
+                image.source ===
+                'upload'
+              ) && onSetFavorite && (
                 <button
-                  className="ai-analyze-button"
+                  className={
+                    `detail-action-button detail-favorite-button ${
+                      image.isFavorite
+                        ? 'detail-favorite-button-active'
+                        : ''
+                    }`
+                  }
                   type="button"
                   disabled={
                     isUpdatingFavorite
@@ -348,27 +370,89 @@ export function ImageDetailPanel({
                     void handleFavorite()
                   }}
                 >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" />
+                  </svg>
+
                   {isUpdatingFavorite
                     ? 'Updating...'
                     : image.isFavorite
                       ? 'Remove favorite'
                       : 'Add to favorites'}
                 </button>
-              </div>
-
-              {favoriteError && (
-                <p className="ai-analysis-error">
-                  {favoriteError}
-                </p>
               )}
-            </section>
-          )}
+
+              <button
+                className="detail-action-button detail-similar-button"
+                type="button"
+                disabled={
+                  isFindingSimilar
+                }
+                onClick={() => {
+                  void handleFindSimilar()
+                }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="9"
+                    cy="9"
+                    r="4"
+                  />
+
+                  <circle
+                    cx="15"
+                    cy="15"
+                    r="4"
+                  />
+
+                  <path d="m18 18 3 3" />
+                </svg>
+
+                {isFindingSimilar
+                  ? 'Finding...'
+                  : 'Find similar'}
+              </button>
+            </div>
 
 
-          <section className="detail-section">
-            <span className="detail-section-label">
-              Information
-            </span>
+            {favoriteError && (
+              <p
+                className="detail-inline-error"
+                role="alert"
+              >
+                {favoriteError}
+              </p>
+            )}
+
+            {similarityError && (
+              <p
+                className="detail-inline-error"
+                role="alert"
+              >
+                {similarityError}
+              </p>
+            )}
+          </section>
+
+
+          <section className="detail-section detail-information-section">
+            <div className="detail-section-heading">
+              <div>
+                <span className="detail-section-label">
+                  Reference
+                </span>
+
+                <h3>
+                  Information
+                </h3>
+              </div>
+            </div>
 
             <dl className="detail-metadata">
               <div>
@@ -397,10 +481,70 @@ export function ImageDetailPanel({
 
               <div>
                 <dt>
-                  Reference ID
+                  Source
                 </dt>
 
                 <dd>
+                  {image.source ===
+                  'upload'
+                    ? 'Upload'
+                    : 'Demo'}
+                </dd>
+              </div>
+
+              <div>
+                <dt>
+                  Saved
+                </dt>
+
+                <dd>
+                  {formatSavedDate(
+                    image.createdAt,
+                  )}
+                </dd>
+              </div>
+
+              {image.fileName && (
+                <div className="detail-metadata-wide">
+                  <dt>
+                    File
+                  </dt>
+
+                  <dd
+                    title={
+                      image.fileName
+                    }
+                  >
+                    {image.fileName}
+                  </dd>
+                </div>
+              )}
+
+              {typeof image.fileSize ===
+                'number' && (
+                <div>
+                  <dt>
+                    Size
+                  </dt>
+
+                  <dd>
+                    {formatFileSize(
+                      image.fileSize,
+                    )}
+                  </dd>
+                </div>
+              )}
+
+              <div className="detail-metadata-wide">
+                <dt>
+                  Reference ID
+                </dt>
+
+                <dd
+                  title={
+                    image.id
+                  }
+                >
                   {image.id}
                 </dd>
               </div>
@@ -408,133 +552,170 @@ export function ImageDetailPanel({
           </section>
 
 
-          <section className="detail-section">
-            <span className="detail-section-label">
-              Tags
-            </span>
-
-            <div className="detail-tags">
-              {image.tags.map(
-                (tag) => {
-                  const isAITag =
-                    analysis
-                      ?.tags
-                      .some(
-                        (
-                          generatedTag,
-                        ) =>
-                          normalizeImageTag(
-                            generatedTag,
-                          )
-                          ===
-                          normalizeImageTag(
-                            tag,
-                          ),
-                      )
-                    ?? false
-
-                  return (
-                    <span
-                      key={
-                        tag
-                      }
-                      className={
-                        isAITag
-                          ? 'detail-tag-ai'
-                          : undefined
-                      }
-                    >
-                      {tag}
-                    </span>
-                  )
-                },
-              )}
-            </div>
-          </section>
-
-
-          <section className="detail-section">
-            <div className="ai-section-heading">
+          <section className="detail-section detail-tags-section">
+            <div className="detail-section-heading">
               <div>
                 <span className="detail-section-label">
-                  Visual similarity
+                  Organization
                 </span>
 
-                <span className="ai-status">
-                  Image embedding
-                </span>
+                <h3>
+                  Tags
+                </h3>
               </div>
 
-              <button
-                className="ai-analyze-button"
-                type="button"
-                disabled={
-                  isFindingSimilar
-                }
-                onClick={() => {
-                  void handleFindSimilar()
-                }}
-              >
-                {isFindingSimilar
-                  ? 'Finding...'
-                  : 'Find similar'}
-              </button>
+              <span className="detail-section-count">
+                {image.tags.length}
+              </span>
             </div>
 
-            {similarityError && (
-              <p className="ai-analysis-error">
-                {similarityError}
+            {image.tags.length >
+              0 ? (
+              <div className="detail-tags">
+                {image.tags.map(
+                  (
+                    tag,
+                  ) => {
+                    const isAITag =
+                      analysis
+                        ?.tags
+                        .some(
+                          (
+                            generatedTag,
+                          ) =>
+                            normalizeImageTag(
+                              generatedTag,
+                            )
+                            ===
+                            normalizeImageTag(
+                              tag,
+                            ),
+                        )
+                      ?? false
+
+                    return (
+                      <span
+                        key={
+                          tag
+                        }
+                        className={
+                          isAITag
+                            ? 'detail-tag-ai'
+                            : undefined
+                        }
+                      >
+                        {isAITag && (
+                          <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path d="m12 3 1.6 5.1L19 10l-5.4 1.9L12 17l-1.6-5.1L5 10l5.4-1.9z" />
+                          </svg>
+                        )}
+
+                        {tag}
+                      </span>
+                    )
+                  },
+                )}
+              </div>
+            ) : (
+              <p className="detail-empty-copy">
+                No tags have been added yet.
               </p>
             )}
           </section>
 
 
-          <section className="detail-section">
-            <div className="ai-section-heading">
-              <div>
-                <span className="detail-section-label">
-                  VIZORA Intelligence
-                </span>
+          <section className="detail-section detail-intelligence-section">
+            <div className="detail-intelligence-header">
+              <div className="detail-intelligence-heading">
+                <div className="detail-ai-mark">
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" />
 
-                <span
-                  className={
-                    analysis
-                      ? (
-                          'ai-status '
-                          + 'ai-status-complete'
-                        )
-                      : 'ai-status'
-                  }
-                >
-                  {analysis
-                    ? 'Analyzed'
-                    : 'Not analyzed'}
-                </span>
+                    <path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z" />
+                  </svg>
+                </div>
+
+                <div>
+                  <span className="detail-section-label">
+                    VIZORA Intelligence
+                  </span>
+
+                  <h3>
+                    Visual analysis
+                  </h3>
+                </div>
               </div>
 
-              <button
-                className="ai-analyze-button"
-                type="button"
-                disabled={
-                  isAnalyzing
+              <span
+                className={
+                  `detail-analysis-status ${
+                    analysis
+                      ? 'detail-analysis-status-complete'
+                      : ''
+                  }`
                 }
-                onClick={() => {
-                  void handleAnalyze()
-                }}
               >
+                <span />
+
+                {analysis
+                  ? 'Analyzed'
+                  : 'Not analyzed'}
+              </span>
+            </div>
+
+
+            <button
+              className="detail-analyze-button"
+              type="button"
+              disabled={
+                isAnalyzing
+              }
+              onClick={() => {
+                void handleAnalyze()
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" />
+              </svg>
+
+              <span>
                 {isAnalyzing
                   ? 'Analyzing...'
                   : analysis
                     ? 'Analyze again'
                     : 'Analyze image'}
-              </button>
-            </div>
+              </span>
+
+              {!isAnalyzing && (
+                <svg
+                  className="detail-analyze-arrow"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="m9 6 6 6-6 6" />
+                </svg>
+              )}
+            </button>
+
 
             {analysisError && (
-              <p className="ai-analysis-error">
+              <p
+                className="detail-inline-error"
+                role="alert"
+              >
                 {analysisError}
               </p>
             )}
+
 
             {analysis ? (
               <AIAnalysisView
@@ -543,42 +724,29 @@ export function ImageDetailPanel({
                 }
               />
             ) : (
-              <div className="ai-analysis-placeholder">
-                <div className="ai-placeholder-row">
+              <div className="detail-analysis-empty">
+                <div className="detail-analysis-empty-grid">
                   <span>
                     Style
                   </span>
 
-                  <div />
-                </div>
-
-                <div className="ai-placeholder-row">
                   <span>
                     Mood
                   </span>
 
-                  <div />
-                </div>
-
-                <div className="ai-placeholder-row">
                   <span>
                     Lighting
                   </span>
 
-                  <div />
-                </div>
-
-                <div className="ai-placeholder-row">
                   <span>
                     Composition
                   </span>
-
-                  <div />
                 </div>
 
                 <p>
-                  Analyze this reference to
-                  generate visual intelligence.
+                  Analyze this reference to generate
+                  style, mood, lighting, composition,
+                  color, tags and creative notes.
                 </p>
               </div>
             )}
@@ -600,13 +768,20 @@ function AIAnalysisView({
   analysis,
 }: AIAnalysisViewProps) {
   return (
-    <div className="ai-analysis-content">
-      <p className="ai-analysis-summary">
-        {analysis.summary}
-      </p>
-
-      <div className="ai-analysis-item">
+    <div className="detail-analysis-content">
+      <div className="detail-analysis-summary">
         <span>
+          AI Summary
+        </span>
+
+        <p>
+          {analysis.summary}
+        </p>
+      </div>
+
+
+      <div className="detail-analysis-block">
+        <span className="detail-analysis-label">
           Subject
         </span>
 
@@ -615,14 +790,17 @@ function AIAnalysisView({
         </p>
       </div>
 
-      <div className="ai-analysis-item">
-        <span>
+
+      <div className="detail-analysis-block">
+        <span className="detail-analysis-label">
           Style
         </span>
 
-        <div className="ai-analysis-values">
+        <div className="detail-analysis-values">
           {analysis.style.map(
-            (value) => (
+            (
+              value,
+            ) => (
               <span
                 key={
                   value
@@ -635,14 +813,17 @@ function AIAnalysisView({
         </div>
       </div>
 
-      <div className="ai-analysis-item">
-        <span>
+
+      <div className="detail-analysis-block">
+        <span className="detail-analysis-label">
           Mood
         </span>
 
-        <div className="ai-analysis-values">
+        <div className="detail-analysis-values">
           {analysis.mood.map(
-            (value) => (
+            (
+              value,
+            ) => (
               <span
                 key={
                   value
@@ -655,42 +836,48 @@ function AIAnalysisView({
         </div>
       </div>
 
-      <div className="ai-analysis-item">
-        <span>
-          Lighting
-        </span>
 
-        <p>
-          {analysis.lighting}
-        </p>
+      <div className="detail-analysis-grid">
+        <div className="detail-analysis-block">
+          <span className="detail-analysis-label">
+            Lighting
+          </span>
+
+          <p>
+            {analysis.lighting}
+          </p>
+        </div>
+
+        <div className="detail-analysis-block">
+          <span className="detail-analysis-label">
+            Composition
+          </span>
+
+          <p>
+            {analysis.composition}
+          </p>
+        </div>
       </div>
 
-      <div className="ai-analysis-item">
-        <span>
-          Composition
-        </span>
 
-        <p>
-          {analysis.composition}
-        </p>
-      </div>
-
-      <div className="ai-analysis-item">
-        <span>
+      <div className="detail-analysis-block">
+        <span className="detail-analysis-label">
           Color palette
         </span>
 
-        <div className="ai-color-palette">
+        <div className="detail-color-palette">
           {analysis.color_palette.map(
-            (color) => (
+            (
+              color,
+            ) => (
               <div
                 key={
                   color
                 }
-                className="ai-color"
+                className="detail-color"
               >
                 <span
-                  className="ai-color-swatch"
+                  className="detail-color-swatch"
                   style={{
                     backgroundColor:
                       color,
@@ -706,14 +893,17 @@ function AIAnalysisView({
         </div>
       </div>
 
-      <div className="ai-analysis-item">
-        <span>
+
+      <div className="detail-analysis-block">
+        <span className="detail-analysis-label">
           AI tags
         </span>
 
-        <div className="ai-analysis-values">
+        <div className="detail-analysis-values detail-analysis-tags">
           {analysis.tags.map(
-            (tag) => (
+            (
+              tag,
+            ) => (
               <span
                 key={
                   tag
@@ -726,8 +916,9 @@ function AIAnalysisView({
         </div>
       </div>
 
-      <div className="ai-analysis-item">
-        <span>
+
+      <div className="detail-analysis-block detail-creative-notes">
+        <span className="detail-analysis-label">
           Creative notes
         </span>
 
@@ -745,16 +936,87 @@ function getOrientation(
     VisualReference,
 ) {
   if (
-    image.width
-    === image.height
+    image.width ===
+    image.height
   ) {
     return 'Square'
   }
 
   return (
-    image.width
-    > image.height
+    image.width >
+    image.height
       ? 'Landscape'
       : 'Portrait'
   )
+}
+
+
+function formatSavedDate(
+  value:
+    string | null,
+) {
+  if (
+    !value
+  ) {
+    return '—'
+  }
+
+  const date =
+    new Date(
+      value,
+    )
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return '—'
+  }
+
+  return new Intl.DateTimeFormat(
+    undefined,
+    {
+      year:
+        'numeric',
+
+      month:
+        'short',
+
+      day:
+        'numeric',
+    },
+  ).format(
+    date,
+  )
+}
+
+
+function formatFileSize(
+  bytes:
+    number,
+) {
+  if (
+    bytes <
+    1024
+  ) {
+    return `${bytes} B`
+  }
+
+  const kilobytes =
+    bytes /
+    1024
+
+  if (
+    kilobytes <
+    1024
+  ) {
+    return `${kilobytes.toFixed(1)} KB`
+  }
+
+  const megabytes =
+    kilobytes /
+    1024
+
+  return `${megabytes.toFixed(1)} MB`
 }

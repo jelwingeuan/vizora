@@ -3,6 +3,7 @@ import './interface-polish.css'
 import './release-hardening.css'
 import './navigation-polish.css'
 import './library-polish.css'
+import './detail-panel-polish.css'
 
 import {
   AccessGate,
