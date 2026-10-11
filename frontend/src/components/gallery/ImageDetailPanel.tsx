@@ -15,6 +15,10 @@ import {
   normalizeImageTag,
 } from '../../utils/tags'
 
+import {
+  ReferenceImage,
+} from './ReferenceImage'
+
 
 type ImageDetailPanelProps = {
   image:
@@ -290,9 +294,9 @@ export function ImageDetailPanel({
                   `${image.width} / ${image.height}`,
               }}
             >
-              <img
-                src={
-                  image.src
+              <ReferenceImage
+                image={
+                  image
                 }
                 alt={
                   image.alt

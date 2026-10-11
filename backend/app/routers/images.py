@@ -4,6 +4,7 @@ from fastapi import (
     File,
     HTTPException,
     Request,
+    Response,
     UploadFile,
     status,
 )
@@ -38,6 +39,7 @@ from app.services.analysis_store_service import (
 
 from app.services.image_service import (
     ImageStorageError,
+    ImageSizeError,
     ImageValidationError,
     MAX_IMAGE_SIZE,
     PendingImageUpload,
@@ -46,6 +48,7 @@ from app.services.image_service import (
     find_stored_image_by_public_id,
     list_stored_images,
     persist_uploaded_images,
+    read_stored_image_bytes,
     set_image_favorite,
     update_image_title,
 )
@@ -308,6 +311,80 @@ def upload_images(
     ]
 
 
+@router.get(
+    "/{image_id}/file",
+    response_class=Response,
+)
+def get_image_file(
+    image_id: str,
+
+    database: Session = Depends(
+        get_db,
+    ),
+) -> Response:
+    image = (
+        find_stored_image_by_public_id(
+            database,
+            image_id,
+        )
+    )
+
+    if image is None:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+
+            detail=(
+                "The stored image "
+                "could not be found."
+            ),
+        )
+
+    try:
+        contents = (
+            read_stored_image_bytes(
+                image,
+            )
+        )
+
+    except ImageStorageError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+
+            detail=(
+                "The stored image "
+                "could not be found."
+            ),
+        ) from error
+
+    except ImageSizeError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_413_CONTENT_TOO_LARGE
+            ),
+
+            detail=str(
+                error,
+            ),
+        ) from error
+
+    return Response(
+        content=contents,
+
+        media_type=(
+            image.mime_type
+        ),
+
+        headers={
+            "Cache-Control":
+                "private, no-store",
+        },
+    )
+
+
 @router.patch(
     "/{image_id}",
     response_model=(
@@ -521,10 +598,10 @@ def create_image_response(
 ) -> StoredImageResponse:
     image_url = str(
         request.url_for(
-            "uploads",
+            "get_image_file",
 
-            path=(
-                image.stored_filename
+            image_id=(
+                image.public_id
             ),
         )
     )

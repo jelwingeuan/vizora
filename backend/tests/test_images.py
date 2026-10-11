@@ -1,7 +1,12 @@
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi.testclient import (
     TestClient,
+)
+
+from app.core.security import (
+    ACCESS_HEADER_NAME,
 )
 
 
@@ -120,6 +125,102 @@ def test_upload_and_list_image(
         listed_images[0]["id"]
         == image["id"]
     )
+
+
+def test_uploaded_image_file_requires_access(
+    client: TestClient,
+    upload_image,
+    uploads_dir: Path,
+    sample_png_bytes: bytes,
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "APP_ENV",
+        "test",
+    )
+
+    monkeypatch.delenv(
+        "VIZORA_ACCESS_TOKEN",
+        raising=False,
+    )
+
+    image = upload_image()
+
+    image_path = (
+        urlsplit(
+            image["url"],
+        ).path
+    )
+
+    stored_filename = (
+        next(
+            uploads_dir.iterdir()
+        ).name
+    )
+
+    assert image_path == (
+        f"/api/images/{image['id']}/file"
+    )
+
+    assert stored_filename not in image["url"]
+
+    owner_token = (
+        "0123456789abcdef"
+        "0123456789abcdef"
+    )
+
+    monkeypatch.setenv(
+        "APP_ENV",
+        "production",
+    )
+
+    monkeypatch.setenv(
+        "VIZORA_ACCESS_TOKEN",
+        owner_token,
+    )
+
+    assert client.get(
+        image_path,
+    ).status_code == 401
+
+    assert client.get(
+        image_path,
+        headers={
+            ACCESS_HEADER_NAME:
+                "wrong-token",
+        },
+    ).status_code == 401
+
+    headers = {
+        ACCESS_HEADER_NAME:
+            owner_token,
+    }
+
+    response = client.get(
+        image_path,
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.content == sample_png_bytes
+    assert response.headers["content-type"] == "image/png"
+    assert response.headers["cache-control"] == "private, no-store"
+
+    assert client.get(
+        "/api/images/missing/file",
+        headers=headers,
+    ).status_code == 404
+
+    assert client.get(
+        f"/uploads/{stored_filename}",
+    ).status_code == 404
+
+    (uploads_dir / stored_filename).unlink()
+
+    assert client.get(
+        image_path,
+        headers=headers,
+    ).status_code == 404
 
 
 def test_rename_and_favorite_image(

@@ -15,6 +15,10 @@ import {
   getImages,
 } from '../../services/imageService'
 
+import {
+  ReferenceImage,
+} from '../gallery/ReferenceImage'
+
 import type {
   Board,
 } from '../../types/board'
@@ -678,9 +682,9 @@ export function BoardsWorkspace() {
                         className="board-picker-card"
                       >
                         <div className="board-picker-preview">
-                          <img
-                            src={
-                              image.src
+                          <ReferenceImage
+                            image={
+                              image
                             }
                             alt={
                               image.alt
@@ -775,9 +779,9 @@ export function BoardsWorkspace() {
                       className="board-reference-card"
                     >
                       <div className="board-reference-image">
-                        <img
-                          src={
-                            image.src
+                        <ReferenceImage
+                          image={
+                            image
                           }
                           alt={
                             image.alt
@@ -1115,9 +1119,9 @@ export function BoardsWorkspace() {
                               }
                               className="board-preview-image"
                             >
-                              <img
-                                src={
-                                  image.src
+                              <ReferenceImage
+                                image={
+                                  image
                                 }
                                 alt=""
                               />
