@@ -13,10 +13,6 @@ from fastapi import (
     FastAPI,
 )
 
-from fastapi.staticfiles import (
-    StaticFiles,
-)
-
 from fastapi.testclient import (
     TestClient,
 )
@@ -45,6 +41,10 @@ import app.services.image_service as image_service
 from app.core.database import (
     Base,
     get_db,
+)
+
+from app.core.security import (
+    AccessControlMiddleware,
 )
 
 from app.routers import (
@@ -164,16 +164,8 @@ def client(
         FastAPI()
     )
 
-    test_app.mount(
-        "/uploads",
-
-        StaticFiles(
-            directory=str(
-                uploads_dir,
-            ),
-        ),
-
-        name="uploads",
+    test_app.add_middleware(
+        AccessControlMiddleware,
     )
 
     test_app.include_router(

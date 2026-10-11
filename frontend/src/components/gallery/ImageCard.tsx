@@ -12,6 +12,10 @@ import type {
   VisualReference,
 } from '../../types/image'
 
+import {
+  ReferenceImage,
+} from './ReferenceImage'
+
 
 type ImageCardProps = {
   image:
@@ -458,9 +462,9 @@ export function ImageCard({
             isSelected
           }
         >
-          <img
-            src={
-              image.src
+          <ReferenceImage
+            image={
+              image
             }
             alt={
               image.alt

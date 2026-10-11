@@ -746,17 +746,13 @@ because Vite environment variables are included in frontend builds.
 
 ## Uploaded Image URLs
 
-The current v1 storage model serves generated upload URLs through:
+Uploaded images are served through an access-protected API route:
 
 ```text
-/uploads/<generated-file-name>
+/api/images/<public-image-id>/file
 ```
 
-API operations are access-token protected, but an uploaded file can currently be accessed directly if its generated URL is already known.
-
-Generated filenames use non-human-readable identifiers, but v1 should still be treated as a single-owner, non-sensitive creative reference workspace.
-
-A future storage architecture can move protected media to authenticated object storage or signed URLs.
+When workspace access control is enabled, image requests require the same `X-Vizora-Token` header as other API requests. Stored filenames are never exposed in image URLs, and `/uploads` is not publicly served.
 
 ---
 

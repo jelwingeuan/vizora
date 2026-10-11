@@ -138,13 +138,13 @@ export function clearAccessToken() {
 }
 
 
-export async function apiRequest<T>(
-  path:
+export async function fetchWithAccess(
+  url:
     string,
 
   options:
     RequestInit = {},
-): Promise<T> {
+): Promise<Response> {
   const headers =
     new Headers(
       options.headers,
@@ -180,14 +180,28 @@ export async function apiRequest<T>(
   }
 
 
-  const response =
-    await fetch(
-      `${API_BASE_URL}${path}`,
+  return fetch(
+    url,
 
-      {
-        ...options,
-        headers,
-      },
+    {
+      ...options,
+      headers,
+    },
+  )
+}
+
+
+export async function apiRequest<T>(
+  path:
+    string,
+
+  options:
+    RequestInit = {},
+): Promise<T> {
+  const response =
+    await fetchWithAccess(
+      `${API_BASE_URL}${path}`,
+      options,
     )
 
 

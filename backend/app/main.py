@@ -12,10 +12,6 @@ from fastapi.middleware.cors import (
     CORSMiddleware,
 )
 
-from fastapi.staticfiles import (
-    StaticFiles,
-)
-
 from app.core.database import (
     initialize_database,
 )
@@ -24,10 +20,6 @@ from app.core.security import (
     AccessControlMiddleware,
     RateLimitMiddleware,
     validate_security_configuration,
-)
-
-from app.core.storage import (
-    UPLOADS_DIR,
 )
 
 from app.routers import (
@@ -135,19 +127,6 @@ app.add_middleware(
     allow_headers=[
         "*",
     ],
-)
-
-
-app.mount(
-    "/uploads",
-
-    StaticFiles(
-        directory=str(
-            UPLOADS_DIR,
-        ),
-    ),
-
-    name="uploads",
 )
 
 
