@@ -1,3 +1,4 @@
+import logging
 import math
 import os
 
@@ -15,6 +16,11 @@ from app.schemas.embedding import (
 
 
 load_dotenv()
+
+
+logger = logging.getLogger(
+    __name__,
+)
 
 
 DEFAULT_EMBEDDING_MODEL = (
@@ -128,10 +134,13 @@ async def generate_image_embedding(
         raise
 
     except Exception as error:
+        logger.warning(
+            "Image embedding generation failed.",
+            exc_info=True,
+        )
+
         raise ImageEmbeddingError(
-            "Image embedding generation failed: "
-            f"{type(error).__name__}: "
-            f"{error}"
+            "Image embedding generation failed."
         ) from error
 
     finally:
