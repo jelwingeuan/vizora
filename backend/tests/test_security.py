@@ -12,6 +12,7 @@ from app.core.security import (
     ACCESS_HEADER_NAME,
     AccessControlMiddleware,
     RateLimitMiddleware,
+    SecurityHeadersMiddleware,
     validate_security_configuration,
 )
 
@@ -246,3 +247,177 @@ def test_ai_rate_limit(
             "Retry-After"
             in third.headers
         )
+
+def test_missing_app_env_fails_closed(
+    monkeypatch,
+):
+    monkeypatch.delenv(
+        "APP_ENV",
+        raising=False,
+    )
+
+    monkeypatch.setenv(
+        "VIZORA_RATE_LIMITING_ENABLED",
+        "false",
+    )
+
+    app = (
+        create_test_app()
+    )
+
+    with TestClient(
+        app,
+    ) as client:
+        response = (
+            client.get(
+                "/api/private",
+            )
+        )
+
+        assert (
+            response.status_code
+            == 401
+        )
+
+
+def test_non_ascii_token_is_rejected(
+    monkeypatch,
+):
+    configure_production(
+        monkeypatch,
+    )
+
+    monkeypatch.setenv(
+        "VIZORA_RATE_LIMITING_ENABLED",
+        "false",
+    )
+
+    app = (
+        create_test_app()
+    )
+
+    with TestClient(
+        app,
+    ) as client:
+        response = (
+            client.get(
+                "/api/private",
+
+                headers={
+                    ACCESS_HEADER_NAME:
+                        b"\xff-not-ascii",
+                },
+            )
+        )
+
+        assert (
+            response.status_code
+            == 401
+        )
+
+
+def test_security_headers_on_all_responses(
+    monkeypatch,
+):
+    configure_production(
+        monkeypatch,
+    )
+
+    monkeypatch.setenv(
+        "VIZORA_RATE_LIMITING_ENABLED",
+        "false",
+    )
+
+    app = (
+        create_test_app()
+    )
+
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+    )
+
+    with TestClient(
+        app,
+    ) as client:
+        rejected = (
+            client.get(
+                "/api/private",
+            )
+        )
+
+        allowed = (
+            client.get(
+                "/api/private",
+
+                headers={
+                    ACCESS_HEADER_NAME:
+                        TEST_TOKEN,
+                },
+            )
+        )
+
+        for response in (
+            rejected,
+            allowed,
+        ):
+            assert (
+                response.headers[
+                    "X-Content-Type-Options"
+                ]
+                == "nosniff"
+            )
+
+            assert (
+                response.headers[
+                    "X-Frame-Options"
+                ]
+                == "DENY"
+            )
+
+            assert (
+                response.headers[
+                    "Referrer-Policy"
+                ]
+                == "no-referrer"
+            )
+
+        assert (
+            rejected.status_code
+            == 401
+        )
+
+        assert (
+            allowed.status_code
+            == 200
+        )
+
+
+def test_api_docs_hidden_in_production(
+    monkeypatch,
+):
+    from app.main import (
+        get_docs_configuration,
+    )
+
+    configure_production(
+        monkeypatch,
+    )
+
+    assert (
+        get_docs_configuration()
+        == {
+            "docs_url": None,
+            "redoc_url": None,
+            "openapi_url": None,
+        }
+    )
+
+    monkeypatch.setenv(
+        "APP_ENV",
+        "development",
+    )
+
+    assert (
+        get_docs_configuration()
+        == {}
+    )
