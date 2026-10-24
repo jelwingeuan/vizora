@@ -168,6 +168,8 @@ VITE_ENABLE_MOCK_IMAGES=false
 
 Do not put the VIZORA access token in Vercel environment variables.
 
+`frontend/vercel.json` sends a Content-Security-Policy whose `connect-src` allows `https://*.onrender.com`. Once you know your Render URL, replace that wildcard with the exact origin (for example `https://vizora-api.onrender.com`). If the API is on a custom domain, add that domain there instead, or the frontend will be blocked from calling it.
+
 Deploy the project.
 
 ---
@@ -305,6 +307,8 @@ VITE_*
 ```
 
 because Vite environment values are compiled into the frontend bundle.
+
+The backend fails closed: if `APP_ENV` is missing or empty, it is treated as `production`, so the access token is required and the API docs (`/docs`, `/redoc`, `/openapi.json`) are disabled. Only an explicit `APP_ENV=development` or `APP_ENV=test` runs without a token.
 
 ---
 

@@ -461,6 +461,8 @@ APP_ENV=development
 GEMINI_API_KEY=your_private_gemini_api_key
 ```
 
+Keep `APP_ENV=development` for local work. If `APP_ENV` is missing, the backend treats it as `production` and requires `VIZORA_ACCESS_TOKEN`.
+
 Never commit a real API key or access token.
 
 ---
