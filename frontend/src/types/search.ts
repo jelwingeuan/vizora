@@ -1,14 +1,8 @@
-export type SemanticSearchItem = {
-  id: string
-  title: string
-  text: string
-}
-
-export type SemanticSearchResult = {
+export type SearchResult = {
   id: string
   score: number
 }
 
-export type SemanticSearchResponse = {
-  results: SemanticSearchResult[]
+export type SearchResponse = {
+  results: SearchResult[]
 }

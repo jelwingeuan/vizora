@@ -34,7 +34,6 @@ const uploadedImage: VisualReference = {
   tags: ['uploaded'],
   width: 8,
   height: 6,
-  source: 'upload',
   isFavorite: false,
   createdAt: '2026-09-06T10:00:00Z',
 }
@@ -105,29 +104,6 @@ it('loads uploads with the owner header and revokes replaced and unmounted blob 
   unmount()
 
   expect(revokeObjectURL).toHaveBeenCalledWith('blob:second')
-})
-
-
-it('displays demo images without an authenticated fetch', () => {
-  const fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-
-  render(
-    <ReferenceImage
-      image={{
-        ...uploadedImage,
-        source: 'mock',
-        src: 'https://picsum.photos/demo',
-      }}
-      alt="Demo image"
-    />,
-  )
-
-  expect(screen.getByRole('img')).toHaveAttribute(
-    'src',
-    'https://picsum.photos/demo',
-  )
-  expect(fetchMock).not.toHaveBeenCalled()
 })
 
 

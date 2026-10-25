@@ -96,9 +96,7 @@ export function ImageCard({
 
 
   const canManage =
-    image.source ===
-      'upload'
-    && Boolean(
+    Boolean(
       onRename,
     )
     && Boolean(
@@ -794,10 +792,7 @@ export function ImageCard({
 
         <div className="image-card-meta">
           <span>
-            {image.source ===
-            'upload'
-              ? 'Uploaded'
-              : 'Reference'}
+            Uploaded
           </span>
 
           <span

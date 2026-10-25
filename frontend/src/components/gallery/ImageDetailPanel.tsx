@@ -197,8 +197,6 @@ export function ImageDetailPanel({
   async function handleFavorite() {
     if (
       !onSetFavorite
-      || image.source !==
-        'upload'
     ) {
       return
     }
@@ -305,10 +303,7 @@ export function ImageDetailPanel({
 
               <div className="detail-preview-badges">
                 <span className="detail-preview-source">
-                  {image.source ===
-                  'upload'
-                    ? 'Uploaded'
-                    : 'Demo'}
+                  Uploaded
                 </span>
 
                 {image.isFavorite && (
@@ -341,23 +336,13 @@ export function ImageDetailPanel({
               </div>
 
               <p>
-                {image.source ===
-                'upload'
-                  ? (
-                      'Saved visual reference in your VIZORA library.'
-                    )
-                  : (
-                      'Demo visual reference available for exploration.'
-                    )}
+                Saved visual reference in your VIZORA library.
               </p>
             </div>
 
 
             <div className="detail-primary-actions">
-              {(
-                image.source ===
-                'upload'
-              ) && onSetFavorite && (
+              {onSetFavorite && (
                 <button
                   className={
                     `detail-action-button detail-favorite-button ${
@@ -489,10 +474,7 @@ export function ImageDetailPanel({
                 </dt>
 
                 <dd>
-                  {image.source ===
-                  'upload'
-                    ? 'Upload'
-                    : 'Demo'}
+                  Upload
                 </dd>
               </div>
 

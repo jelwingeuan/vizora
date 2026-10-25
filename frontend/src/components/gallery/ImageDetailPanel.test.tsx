@@ -47,9 +47,6 @@ VisualReference = {
   height:
     800,
 
-  source:
-    'upload',
-
   isFavorite:
     false,
 

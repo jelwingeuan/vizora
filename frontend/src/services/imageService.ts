@@ -261,9 +261,6 @@ function createVisualReference(
     height:
       image.height,
 
-    source:
-      image.source,
-
     isFavorite:
       image.is_favorite,
 

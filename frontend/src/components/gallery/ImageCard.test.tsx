@@ -48,9 +48,6 @@ VisualReference = {
   height:
     800,
 
-  source:
-    'upload',
-
   isFavorite:
     false,
 
@@ -482,61 +479,5 @@ describe(
     )
 
 
-    it(
-      'does not show management controls for mock references',
-      () => {
-        const callbacks =
-          createCallbacks()
-
-        const mockImage:
-        VisualReference = {
-          ...uploadedImage,
-
-          id:
-            'mock-image',
-
-          source:
-            'mock',
-
-          createdAt:
-            null,
-        }
-
-        render(
-          <ImageCard
-            image={
-              mockImage
-            }
-
-            isSelected={
-              false
-            }
-
-            onSelect={
-              callbacks.onSelect
-            }
-
-            onRename={
-              callbacks.onRename
-            }
-
-            onDelete={
-              callbacks.onDelete
-            }
-          />,
-        )
-
-        expect(
-          screen.queryByRole(
-            'button',
-
-            {
-              name:
-                'Manage Test Reference',
-            },
-          ),
-        ).not.toBeInTheDocument()
-      },
-    )
   },
 )

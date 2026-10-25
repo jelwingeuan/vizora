@@ -17,6 +17,8 @@ def test_main_app_imports_and_registers_core_routes():
         "/api/access",
         "/api/images",
         "/api/search/semantic",
+        "/api/search/similar/{image_id}",
+        "/api/ai/analyze/{image_id}",
     }
 
     missing_paths = (

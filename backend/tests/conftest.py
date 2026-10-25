@@ -48,9 +48,19 @@ from app.core.security import (
 )
 
 from app.routers import (
+    ai,
     boards,
     health,
     images,
+    search,
+)
+
+from app.services.visual_ai import (
+    get_visual_ai,
+)
+
+from tests.fakes import (
+    FakeVisualAI,
 )
 
 
@@ -152,9 +162,15 @@ def uploads_dir(
 
 
 @pytest.fixture()
+def fake_ai() -> FakeVisualAI:
+    return FakeVisualAI()
+
+
+@pytest.fixture()
 def client(
     session_factory,
     uploads_dir: Path,
+    fake_ai: FakeVisualAI,
 ) -> Generator[
     TestClient,
     None,
@@ -180,6 +196,14 @@ def client(
         boards.router,
     )
 
+    test_app.include_router(
+        ai.router,
+    )
+
+    test_app.include_router(
+        search.router,
+    )
+
 
     def override_get_db():
         database = (
@@ -196,6 +220,10 @@ def client(
     test_app.dependency_overrides[
         get_db
     ] = override_get_db
+
+    test_app.dependency_overrides[
+        get_visual_ai
+    ] = lambda: fake_ai
 
 
     with TestClient(

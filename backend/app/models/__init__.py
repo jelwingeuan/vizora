@@ -18,6 +18,10 @@ from app.models.image_embedding import (
     ImageEmbeddingRecord,
 )
 
+from app.models.image_text_embedding import (
+    ImageTextEmbeddingRecord,
+)
+
 
 __all__ = [
     "Board",
@@ -25,4 +29,5 @@ __all__ = [
     "Image",
     "ImageAnalysisRecord",
     "ImageEmbeddingRecord",
+    "ImageTextEmbeddingRecord",
 ]

@@ -178,14 +178,6 @@ export function DiscoverWorkspace({
     )
 
 
-  const uploadedCount =
-    images.filter(
-      (image) =>
-        image.source
-        === 'upload',
-    ).length
-
-
   const generatedTagCount =
     new Set(
       images.flatMap(
@@ -513,7 +505,7 @@ export function DiscoverWorkspace({
           </span>
 
           <strong>
-            {uploadedCount}
+            {images.length}
           </strong>
 
           <small>

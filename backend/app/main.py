@@ -26,7 +26,6 @@ from app.routers import (
     access,
     ai,
     boards,
-    embeddings,
     health,
     images,
     search,
@@ -144,10 +143,6 @@ app.include_router(
 
 app.include_router(
     search.router,
-)
-
-app.include_router(
-    embeddings.router,
 )
 
 app.include_router(

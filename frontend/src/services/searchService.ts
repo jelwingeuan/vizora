@@ -1,14 +1,13 @@
 import { apiRequest } from './api'
 
 import type {
-  SemanticSearchItem,
-  SemanticSearchResponse,
+  SearchResponse,
 } from '../types/search'
+
 
 export async function semanticSearch(
   query: string,
-  items: SemanticSearchItem[],
-): Promise<SemanticSearchResponse> {
+): Promise<SearchResponse> {
   const normalizedQuery =
     query.trim()
 
@@ -18,26 +17,33 @@ export async function semanticSearch(
     )
   }
 
-  if (items.length === 0) {
-    return {
-      results: [],
-    }
-  }
-
-  return apiRequest<SemanticSearchResponse>(
+  return apiRequest<SearchResponse>(
     '/api/search/semantic',
     {
       method: 'POST',
-
       headers: {
         'Content-Type':
           'application/json',
       },
-
       body: JSON.stringify({
         query: normalizedQuery,
-        items,
       }),
+    },
+  )
+}
+
+
+export async function findSimilarImages(
+  imageId: string,
+): Promise<SearchResponse> {
+  return apiRequest<SearchResponse>(
+    `/api/search/similar/${
+      encodeURIComponent(
+        imageId,
+      )
+    }`,
+    {
+      method: 'POST',
     },
   )
 }
