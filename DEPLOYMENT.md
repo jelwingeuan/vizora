@@ -158,12 +158,10 @@ Output Directory:
 dist
 ```
 
-Add these production environment variables:
+Add this production environment variable:
 
 ```text
 VITE_API_BASE_URL=https://YOUR-RENDER-URL
-
-VITE_ENABLE_MOCK_IMAGES=false
 ```
 
 Do not put the VIZORA access token in Vercel environment variables.

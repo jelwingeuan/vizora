@@ -104,11 +104,12 @@ soft product photography
 brutalist monochrome layout
 ```
 
-VIZORA combines reference metadata with AI-generated visual analysis to build richer searchable descriptions.
+VIZORA combines reference metadata with AI-generated visual analysis to build richer searchable descriptions. Search runs on the backend across the whole stored library.
 
 Semantic search uses:
 
 - text embeddings
+- cached document embeddings, refreshed only when a reference's title or AI analysis changes
 - semantic similarity
 - lexical relevance
 - title relevance
@@ -129,11 +130,10 @@ The similarity system includes:
 
 - multimodal image embeddings
 - persisted embeddings for uploaded references
-- cosine similarity ranking
+- cosine similarity ranking on the backend
 - minimum similarity thresholds
 - adaptive result filtering
-- batched embedding generation
-- frontend embedding caching
+- parallel embedding generation for references that have no embedding yet
 
 Weak matches are filtered instead of always returning a fixed number of results.
 
@@ -208,6 +208,7 @@ Delete operations remove related data:
 Image
 ├── AI analysis
 ├── image embedding
+├── search text embedding
 ├── board memberships
 └── stored image file
 ```
@@ -272,7 +273,7 @@ The current detail experience includes:
 
 - large image preview
 - title and orientation
-- uploaded/demo source indicator
+- upload source indicator
 - favorite state
 - Add to Favorites / Remove Favorite
 - Find Similar
@@ -373,7 +374,6 @@ vizora/
 │   │   │   ├── gallery/
 │   │   │   ├── layout/
 │   │   │   └── upload/
-│   │   ├── data/
 │   │   ├── services/
 │   │   ├── test/
 │   │   ├── types/
@@ -619,7 +619,11 @@ Backend tests cover areas including:
 - access protection
 - rate limiting
 - route registration
-- semantic-search request limits
+- AI analysis persistence
+- semantic search and embedding caching
+- visual similarity ranking
+
+AI-dependent tests use an offline fake of the Gemini adapter, so the suite needs no API key or network access.
 
 Run a dependency audit with:
 
@@ -643,7 +647,6 @@ npm run lint
 
 Frontend tests cover areas including:
 
-- similarity ranking
 - tag normalization
 - image management
 - rename/delete interactions
@@ -715,8 +718,7 @@ The access token:
 Production mode also supports configurable rate limiting for:
 
 - AI analysis
-- semantic search
-- embeddings
+- semantic search and Find Similar
 - uploads
 
 The health endpoint remains public so hosting infrastructure can verify backend availability.
@@ -913,7 +915,7 @@ for the deployment procedure.
 - [x] semantic search
 - [x] visual similarity discovery
 - [x] similarity filtering
-- [x] embedding batching
+- [x] cached search embeddings
 
 ## Organization
 
