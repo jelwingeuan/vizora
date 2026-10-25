@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import math
 import os
 import re
@@ -20,6 +21,11 @@ from app.schemas.search import (
 
 
 load_dotenv()
+
+
+logger = logging.getLogger(
+    __name__,
+)
 
 
 DEFAULT_EMBEDDING_MODEL = (
@@ -310,10 +316,13 @@ def _semantic_search_sync(
         raise
 
     except Exception as error:
+        logger.warning(
+            "Semantic search failed.",
+            exc_info=True,
+        )
+
         raise SemanticSearchError(
-            "Semantic search failed: "
-            f"{type(error).__name__}: "
-            f"{error}"
+            "Semantic search failed."
         ) from error
 
     finally:

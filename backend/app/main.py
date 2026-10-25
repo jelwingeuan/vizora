@@ -19,6 +19,8 @@ from app.core.database import (
 from app.core.security import (
     AccessControlMiddleware,
     RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    is_api_docs_enabled,
     validate_security_configuration,
 )
 
@@ -76,6 +78,23 @@ def get_allowed_origins() -> list[str]:
     )
 
 
+def get_docs_configuration() -> dict[
+    str,
+    str | None,
+]:
+    # The docs routes live outside /api,
+    # so the access middleware does not
+    # protect them. Hide them in production.
+    if is_api_docs_enabled():
+        return {}
+
+    return {
+        "docs_url": None,
+        "redoc_url": None,
+        "openapi_url": None,
+    }
+
+
 @asynccontextmanager
 async def lifespan(
     _: FastAPI,
@@ -98,6 +117,8 @@ app = FastAPI(
     version="0.1.0",
 
     lifespan=lifespan,
+
+    **get_docs_configuration(),
 )
 
 
@@ -108,6 +129,11 @@ app.add_middleware(
 
 app.add_middleware(
     AccessControlMiddleware,
+)
+
+
+app.add_middleware(
+    SecurityHeadersMiddleware,
 )
 
 

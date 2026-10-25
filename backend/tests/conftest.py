@@ -54,6 +54,26 @@ from app.routers import (
 )
 
 
+@pytest.fixture(
+    autouse=True,
+)
+def test_environment(
+    monkeypatch,
+) -> None:
+    # An unset APP_ENV now means
+    # production, so tests opt in to
+    # the test environment explicitly.
+    monkeypatch.setenv(
+        "APP_ENV",
+        "test",
+    )
+
+    monkeypatch.delenv(
+        "VIZORA_ACCESS_TOKEN",
+        raising=False,
+    )
+
+
 @pytest.fixture()
 def test_engine(
     tmp_path: Path,

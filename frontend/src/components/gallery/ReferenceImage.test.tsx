@@ -26,6 +26,27 @@ import type {
 } from '../../types/image'
 
 
+const NativeURL = URL
+
+
+// Keep the real URL constructor so origin
+// checks still work while blob URLs are mocked.
+function stubBlobUrls(
+  methods: {
+    createObjectURL: (blob: Blob) => string
+    revokeObjectURL: (url: string) => void
+  },
+) {
+  vi.stubGlobal(
+    'URL',
+    Object.assign(
+      class extends NativeURL {},
+      methods,
+    ),
+  )
+}
+
+
 const uploadedImage: VisualReference = {
   id: 'image-123',
   title: 'Uploaded image',
@@ -68,7 +89,7 @@ it('loads uploads with the owner header and revokes replaced and unmounted blob 
   const revokeObjectURL = vi.fn()
 
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('URL', {
+  stubBlobUrls({
     createObjectURL,
     revokeObjectURL,
   })
@@ -108,6 +129,43 @@ it('loads uploads with the owner header and revokes replaced and unmounted blob 
 })
 
 
+it('never sends the owner header to another origin', async () => {
+  window.sessionStorage.setItem(
+    'vizora.accessToken',
+    'owner-token',
+  )
+
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    blob: async () => new Blob(['image'], { type: 'image/png' }),
+  })
+
+  vi.stubGlobal('fetch', fetchMock)
+  stubBlobUrls({
+    createObjectURL: vi.fn().mockReturnValue('blob:foreign'),
+    revokeObjectURL: vi.fn(),
+  })
+
+  render(
+    <ReferenceImage
+      image={{
+        ...uploadedImage,
+        src: 'https://attacker.example/api/images/image-123/file',
+      }}
+      alt={uploadedImage.alt}
+    />,
+  )
+
+  await waitFor(() => {
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  const options = fetchMock.mock.calls[0][1] as RequestInit
+
+  expect(new Headers(options.headers).has('X-Vizora-Token')).toBe(false)
+})
+
+
 it('displays demo images without an authenticated fetch', () => {
   const fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
@@ -143,7 +201,7 @@ it('displays uploaded Discover results and their detail preview', async () => {
   })
 
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('URL', {
+  stubBlobUrls({
     createObjectURL: vi.fn().mockReturnValue('blob:discover'),
     revokeObjectURL: vi.fn(),
   })

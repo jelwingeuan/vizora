@@ -138,6 +138,59 @@ export function clearAccessToken() {
 }
 
 
+function resolveOrigin(
+  url:
+    string,
+): string | null {
+  try {
+    return new URL(
+      url,
+      window.location.origin,
+    ).origin
+
+  } catch {
+    return null
+  }
+}
+
+
+// Only first-party origins may receive the
+// access token. Image URLs come from API
+// responses, so never trust them blindly.
+function canReceiveAccessToken(
+  url:
+    string,
+): boolean {
+  if (
+    typeof window ===
+      'undefined'
+  ) {
+    return false
+  }
+
+  const targetOrigin =
+    resolveOrigin(
+      url,
+    )
+
+  if (!targetOrigin) {
+    return false
+  }
+
+  const trustedOrigins = [
+    window.location.origin,
+    resolveOrigin(
+      API_BASE_URL
+      || window.location.origin,
+    ),
+  ]
+
+  return trustedOrigins.includes(
+    targetOrigin,
+  )
+}
+
+
 export async function fetchWithAccess(
   url:
     string,
@@ -171,6 +224,9 @@ export async function fetchWithAccess(
     accessToken
     && !headers.has(
       ACCESS_HEADER_NAME,
+    )
+    && canReceiveAccessToken(
+      url,
     )
   ) {
     headers.set(
