@@ -33,6 +33,10 @@ const ACCESS_HEADER_NAME =
   'X-Vizora-Token'
 
 
+export const ACCESS_REVOKED_EVENT =
+  'vizora:access-revoked'
+
+
 export type AccessStatusResponse = {
   status:
     string
@@ -219,15 +223,18 @@ export async function fetchWithAccess(
   const accessToken =
     getAccessToken()
 
+  const trustedRequest =
+    canReceiveAccessToken(
+      url,
+    )
+
 
   if (
     accessToken
     && !headers.has(
       ACCESS_HEADER_NAME,
     )
-    && canReceiveAccessToken(
-      url,
-    )
+    && trustedRequest
   ) {
     headers.set(
       ACCESS_HEADER_NAME,
@@ -236,7 +243,7 @@ export async function fetchWithAccess(
   }
 
 
-  return fetch(
+  const response = await fetch(
     url,
 
     {
@@ -244,6 +251,31 @@ export async function fetchWithAccess(
       headers,
     },
   )
+
+  if (
+    response.status === 401
+    && trustedRequest
+    && (
+      !response.url
+      || canReceiveAccessToken(
+        response.url,
+      )
+    )
+    && accessToken
+    && headers.get(
+      ACCESS_HEADER_NAME,
+    ) === accessToken
+    && getAccessToken() === accessToken
+  ) {
+    clearAccessToken()
+    window.dispatchEvent(
+      new Event(
+        ACCESS_REVOKED_EVENT,
+      ),
+    )
+  }
+
+  return response
 }
 
 

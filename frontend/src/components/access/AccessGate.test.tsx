@@ -1,4 +1,5 @@
 import {
+  act,
   render,
   screen,
   waitFor,
@@ -15,6 +16,7 @@ import {
 } from 'vitest'
 
 import {
+  ACCESS_REVOKED_EVENT,
   ApiError,
   checkAccess,
   clearAccessToken,
@@ -55,6 +57,9 @@ vi.mock(
     }
 
     return {
+      ACCESS_REVOKED_EVENT:
+        'vizora:access-revoked',
+
       ApiError:
         MockApiError,
 
@@ -209,6 +214,39 @@ describe(
         ).toHaveBeenCalledTimes(
           1,
         )
+      },
+    )
+
+    it(
+      'locks an open workspace when its token is rejected later',
+
+      async () => {
+        mockedCheckAccess.mockResolvedValueOnce({
+          status: 'ok',
+          protected: true,
+        })
+
+        render(
+          <AccessGate>
+            <div>Workspace</div>
+          </AccessGate>,
+        )
+
+        expect(
+          await screen.findByText('Workspace'),
+        ).toBeInTheDocument()
+
+        act(() => {
+          window.dispatchEvent(
+            new Event(ACCESS_REVOKED_EVENT),
+          )
+        })
+
+        expect(
+          screen.getByRole('heading', { name: 'Unlock VIZORA' }),
+        ).toBeInTheDocument()
+        expect(screen.queryByText('Workspace')).not.toBeInTheDocument()
+        expect(mockedClearAccessToken).toHaveBeenCalledTimes(1)
       },
     )
   },
