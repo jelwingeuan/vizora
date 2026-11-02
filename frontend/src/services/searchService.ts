@@ -5,6 +5,8 @@ import type {
   SemanticSearchResponse,
 } from '../types/search'
 
+const MAX_SEMANTIC_SEARCH_ITEMS = 500
+
 export async function semanticSearch(
   query: string,
   items: SemanticSearchItem[],
@@ -22,6 +24,12 @@ export async function semanticSearch(
     return {
       results: [],
     }
+  }
+
+  if (items.length > MAX_SEMANTIC_SEARCH_ITEMS) {
+    throw new Error(
+      `Semantic search supports up to ${MAX_SEMANTIC_SEARCH_ITEMS} references. This library has ${items.length}.`,
+    )
   }
 
   return apiRequest<SemanticSearchResponse>(

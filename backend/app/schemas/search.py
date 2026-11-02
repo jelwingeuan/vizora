@@ -5,7 +5,7 @@ from pydantic import (
 
 
 MAX_SEMANTIC_SEARCH_ITEMS = (
-    250
+    500
 )
 
 
