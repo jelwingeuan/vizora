@@ -689,6 +689,7 @@ export function BoardsWorkspace() {
                             alt={
                               image.alt
                             }
+                            loading="lazy"
                           />
                         </div>
 
@@ -786,6 +787,7 @@ export function BoardsWorkspace() {
                           alt={
                             image.alt
                           }
+                          loading="lazy"
                         />
                       </div>
 
@@ -1124,6 +1126,7 @@ export function BoardsWorkspace() {
                                   image
                                 }
                                 alt=""
+                                loading="lazy"
                               />
                             </div>
                           ),

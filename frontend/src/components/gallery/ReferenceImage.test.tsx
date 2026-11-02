@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -68,6 +69,61 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+
+it('waits for lazy uploads to approach the viewport before fetching', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    blob: async () => new Blob(['image'], { type: 'image/png' }),
+  })
+  const observe = vi.fn()
+  const disconnect = vi.fn()
+  let notify: IntersectionObserverCallback = () => {}
+
+  class MockIntersectionObserver {
+    observe = observe
+    disconnect = disconnect
+
+    constructor(callback: IntersectionObserverCallback) {
+      notify = callback
+    }
+  }
+
+  vi.stubGlobal('fetch', fetchMock)
+  vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+  stubBlobUrls({
+    createObjectURL: vi.fn().mockReturnValue('blob:visible'),
+    revokeObjectURL: vi.fn(),
+  })
+
+  const { unmount } = render(
+    <ReferenceImage
+      image={uploadedImage}
+      alt={uploadedImage.alt}
+      loading="lazy"
+    />,
+  )
+
+  expect(observe).toHaveBeenCalledWith(screen.getByRole('img'))
+  expect(fetchMock).not.toHaveBeenCalled()
+
+  act(() => {
+    notify([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver)
+  })
+  expect(fetchMock).not.toHaveBeenCalled()
+
+  act(() => {
+    notify([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+  })
+
+  await waitFor(() => {
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:visible')
+  })
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+  expect(disconnect).toHaveBeenCalled()
+
+  unmount()
 })
 
 
@@ -178,6 +234,7 @@ it('displays demo images without an authenticated fetch', () => {
         src: 'https://picsum.photos/demo',
       }}
       alt="Demo image"
+      loading="lazy"
     />,
   )
 
