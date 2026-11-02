@@ -16,6 +16,10 @@ from app.core.database import (
     initialize_database,
 )
 
+from app.core.request_size import (
+    UploadSizeLimitMiddleware,
+)
+
 from app.core.security import (
     AccessControlMiddleware,
     RateLimitMiddleware,
@@ -34,11 +38,34 @@ from app.routers import (
     search,
 )
 
+from app.services.image_service import (
+    MAX_IMAGE_SIZE,
+)
+
 
 DEFAULT_ALLOWED_ORIGINS = (
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 )
+
+
+MULTIPART_OVERHEAD_BYTES = 1024 * 1024
+
+
+UPLOAD_BODY_LIMITS = {
+    "/api/images": (
+        images.MAX_UPLOAD_REQUEST_SIZE
+        + MULTIPART_OVERHEAD_BYTES
+    ),
+    "/api/ai/analyze": (
+        MAX_IMAGE_SIZE
+        + MULTIPART_OVERHEAD_BYTES
+    ),
+    "/api/embeddings/image": (
+        MAX_IMAGE_SIZE
+        + MULTIPART_OVERHEAD_BYTES
+    ),
+}
 
 
 def get_allowed_origins() -> list[str]:
@@ -119,6 +146,13 @@ app = FastAPI(
     lifespan=lifespan,
 
     **get_docs_configuration(),
+)
+
+
+app.add_middleware(
+    UploadSizeLimitMiddleware,
+
+    limits=UPLOAD_BODY_LIMITS,
 )
 
 
