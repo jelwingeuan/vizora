@@ -121,7 +121,6 @@ export function TopBar({
 
         <div
           className="user-chip"
-          aria-label="Private VIZORA workspace"
         >
           <div
             className="user-avatar"
