@@ -26,6 +26,9 @@ from app.schemas.analysis import (
 from app.services.ai_service import (
     AIAnalysisError,
     AIConfigurationError,
+    AIImageSizeError,
+    INLINE_IMAGE_TOO_LARGE_DETAIL,
+    MAX_INLINE_IMAGE_SIZE,
     analyze_image_bytes,
 )
 
@@ -81,7 +84,7 @@ async def analyze_temporary_image(
 
     try:
         contents = await image.read(
-            MAX_IMAGE_SIZE + 1,
+            MAX_INLINE_IMAGE_SIZE + 1,
         )
 
     finally:
@@ -100,17 +103,14 @@ async def analyze_temporary_image(
 
     if (
         len(contents)
-        > MAX_IMAGE_SIZE
+        > MAX_INLINE_IMAGE_SIZE
     ):
         raise HTTPException(
             status_code=(
                 status.HTTP_413_CONTENT_TOO_LARGE
             ),
 
-            detail=(
-                "Images must be smaller "
-                "than 15 MB."
-            ),
+            detail=INLINE_IMAGE_TOO_LARGE_DETAIL,
         )
 
     try:
@@ -197,6 +197,14 @@ async def analyze_stored_image(
             ),
         )
 
+    if stored_image.file_size > MAX_INLINE_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_413_CONTENT_TOO_LARGE
+            ),
+            detail=INLINE_IMAGE_TOO_LARGE_DETAIL,
+        )
+
     try:
         contents = await run_in_threadpool(
             read_stored_image_bytes,
@@ -258,6 +266,14 @@ async def run_analysis(
         raise HTTPException(
             status_code=(
                 status.HTTP_503_SERVICE_UNAVAILABLE
+            ),
+            detail=str(error),
+        ) from error
+
+    except AIImageSizeError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_413_CONTENT_TOO_LARGE
             ),
             detail=str(error),
         ) from error

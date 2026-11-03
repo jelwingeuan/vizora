@@ -2,6 +2,8 @@ import logging
 import math
 import os
 
+from io import BytesIO
+
 from dotenv import load_dotenv
 
 from google import genai
@@ -9,6 +11,8 @@ from google import genai
 from google.genai import (
     types,
 )
+from PIL import Image as PillowImage
+from PIL import UnidentifiedImageError
 
 from app.schemas.embedding import (
     ImageEmbedding,
@@ -28,6 +32,8 @@ DEFAULT_EMBEDDING_MODEL = (
 )
 
 EMBEDDING_DIMENSIONS = 768
+
+MAX_EMBEDDING_IMAGE_DIMENSION = 2048
 
 
 class EmbeddingConfigurationError(
@@ -66,18 +72,24 @@ async def generate_image_embedding(
         get_configured_embedding_model()
     )
 
-    client = genai.Client(
-        api_key=api_key,
-    )
-
-    image_part = (
-        types.Part.from_bytes(
-            data=image_bytes,
-            mime_type=mime_type,
-        )
-    )
-
+    client = None
     try:
+        prepared_bytes, prepared_mime_type = (
+            prepare_embedding_image(
+                image_bytes,
+                mime_type,
+            )
+        )
+
+        client = genai.Client(
+            api_key=api_key,
+        )
+
+        image_part = types.Part.from_bytes(
+            data=prepared_bytes,
+            mime_type=prepared_mime_type,
+        )
+
         response = (
             await client.aio.models.embed_content(
                 model=model,
@@ -144,20 +156,76 @@ async def generate_image_embedding(
         ) from error
 
     finally:
-        await client.aio.aclose()
+        if client is not None:
+            try:
+                await client.aio.aclose()
+            finally:
+                client.close()
+
+
+def prepare_embedding_image(
+    image_bytes: bytes,
+    mime_type: str,
+) -> tuple[bytes, str]:
+    if mime_type != "image/webp":
+        return image_bytes, mime_type
+
+    try:
+        with PillowImage.open(
+            BytesIO(image_bytes),
+        ) as image:
+            image.thumbnail(
+                (
+                    MAX_EMBEDDING_IMAGE_DIMENSION,
+                    MAX_EMBEDDING_IMAGE_DIMENSION,
+                ),
+                PillowImage.Resampling.LANCZOS,
+            )
+
+            rgba_image = image.convert("RGBA")
+            background = PillowImage.new(
+                "RGBA",
+                rgba_image.size,
+                (255, 255, 255, 255),
+            )
+            background.alpha_composite(rgba_image)
+
+            output = BytesIO()
+            background.convert("RGB").save(
+                output,
+                format="JPEG",
+                quality=85,
+                optimize=True,
+            )
+
+            return output.getvalue(), "image/jpeg"
+
+    except (
+        UnidentifiedImageError,
+        OSError,
+        ValueError,
+    ) as error:
+        raise ImageEmbeddingError(
+            "Unable to prepare WebP image for embedding."
+        ) from error
 
 
 def normalize_embedding(
     embedding: list[float],
 ) -> list[float]:
-    magnitude = math.sqrt(
-        sum(
-            value * value
-            for value in embedding
+    if len(embedding) != EMBEDDING_DIMENSIONS:
+        raise ImageEmbeddingError(
+            "Image embedding has an unexpected dimension."
         )
-    )
 
-    if magnitude == 0:
+    if not all(math.isfinite(value) for value in embedding):
+        raise ImageEmbeddingError(
+            "Image embedding contains non-finite values."
+        )
+
+    magnitude = math.hypot(*embedding)
+
+    if not math.isfinite(magnitude) or magnitude == 0:
         raise ImageEmbeddingError(
             "Image embedding has zero magnitude."
         )

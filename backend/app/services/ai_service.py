@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import os
 
@@ -11,6 +12,11 @@ load_dotenv()
 
 
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
+
+MAX_INLINE_IMAGE_SIZE = 14 * 1024 * 1024
+INLINE_IMAGE_TOO_LARGE_DETAIL = (
+    "AI analysis images must be no larger than 14 MiB."
+)
 
 
 ANALYSIS_PROMPT = """
@@ -58,10 +64,19 @@ class AIAnalysisError(RuntimeError):
     pass
 
 
+class AIImageSizeError(RuntimeError):
+    pass
+
+
 def analyze_image_bytes(
     image_bytes: bytes,
     mime_type: str,
 ) -> ImageAnalysis:
+    if len(image_bytes) > MAX_INLINE_IMAGE_SIZE:
+        raise AIImageSizeError(
+            INLINE_IMAGE_TOO_LARGE_DETAIL
+        )
+
     api_key = os.getenv(
         "GEMINI_API_KEY",
     )
@@ -126,4 +141,7 @@ def analyze_image_bytes(
         ) from error
 
     finally:
-        client.close()
+        try:
+            client.close()
+        finally:
+            asyncio.run(client.aio.aclose())
