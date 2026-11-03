@@ -718,7 +718,7 @@ export function AppLayout() {
 
 
       const batchResults =
-        await Promise.allSettled(
+        await Promise.all(
           batch.map(
             async (
               candidate,
@@ -735,19 +735,8 @@ export function AppLayout() {
         )
 
 
-      batchResults.forEach(
-        (
-          result,
-        ) => {
-          if (
-            result.status ===
-            'fulfilled'
-          ) {
-            embeddedCandidates.push(
-              result.value,
-            )
-          }
-        },
+      embeddedCandidates.push(
+        ...batchResults,
       )
     }
 
