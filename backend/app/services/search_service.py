@@ -3,6 +3,8 @@ import logging
 import math
 import os
 import re
+from functools import lru_cache
+from threading import Lock
 
 from dotenv import (
     load_dotenv,
@@ -39,6 +41,8 @@ MAX_RESULTS = 12
 DOCUMENT_BATCH_SIZE = 24
 
 MAX_DOCUMENT_CHARACTERS = 4000
+
+DOCUMENT_CACHE_LOCK = Lock()
 
 
 DEFAULT_MIN_RESULT_SCORE = 0.42
@@ -101,6 +105,11 @@ def _semantic_search_sync(
         "GEMINI_EMBEDDING_MODEL",
         DEFAULT_EMBEDDING_MODEL,
     )
+
+    if model.removeprefix("models/") != DEFAULT_EMBEDDING_MODEL:
+        raise SearchConfigurationError(
+            "GEMINI_EMBEDDING_MODEL must use gemini-embedding-001."
+        )
 
     minimum_score = (
         get_float_setting(
@@ -180,15 +189,12 @@ def _semantic_search_sync(
             )
         )
 
-        document_embeddings = (
-            embed_documents(
-                client=client,
-
-                model=model,
-
-                documents=documents,
+        # Concurrent searches share the first document embedding request.
+        with DOCUMENT_CACHE_LOCK:
+            document_embeddings = cached_document_embeddings(
+                model,
+                tuple(documents),
             )
-        )
 
         if (
             len(document_embeddings)
@@ -326,7 +332,7 @@ def _semantic_search_sync(
         ) from error
 
     finally:
-        client.close()
+        close_client(client)
 
 
 def prepare_search_items(
@@ -466,6 +472,33 @@ def embed_documents(
         )
 
     return embeddings
+
+
+@lru_cache(maxsize=1)
+def cached_document_embeddings(
+    model: str,
+    documents: tuple[str, ...],
+):
+    client = genai.Client(
+        api_key=os.getenv("GEMINI_API_KEY"),
+    )
+
+    try:
+        return embed_documents(
+            client=client,
+            model=model,
+            documents=list(documents),
+        )
+
+    finally:
+        close_client(client)
+
+
+def close_client(client):
+    try:
+        client.close()
+    finally:
+        asyncio.run(client.aio.aclose())
 
 
 def calculate_combined_score(
