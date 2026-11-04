@@ -248,6 +248,98 @@ def test_ai_rate_limit(
             in third.headers
         )
 
+
+def test_owner_rate_limit_is_shared_across_client_hosts(
+    monkeypatch,
+):
+    configure_production(monkeypatch)
+    monkeypatch.setenv("VIZORA_RATE_LIMITING_ENABLED", "true")
+    monkeypatch.setenv("VIZORA_AI_RATE_LIMIT_PER_MINUTE", "2")
+
+    app = create_test_app()
+    headers = {ACCESS_HEADER_NAME: TEST_TOKEN}
+
+    with (
+        TestClient(app, client=("first-host", 5000)) as first,
+        TestClient(app, client=("second-host", 5000)) as second,
+    ):
+        statuses = [
+            first.post("/api/ai/test", headers=headers).status_code,
+            second.post("/api/ai/test", headers=headers).status_code,
+            first.post("/api/ai/test", headers=headers).status_code,
+        ]
+
+    assert statuses == [200, 200, 429]
+
+
+def test_tokenless_development_rate_limit_uses_client_host(
+    monkeypatch,
+):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.delenv("VIZORA_ACCESS_TOKEN", raising=False)
+    monkeypatch.setenv("VIZORA_RATE_LIMITING_ENABLED", "true")
+    monkeypatch.setenv("VIZORA_AI_RATE_LIMIT_PER_MINUTE", "1")
+
+    app = create_test_app()
+
+    with (
+        TestClient(app, client=("first-host", 5000)) as first,
+        TestClient(app, client=("second-host", 5000)) as second,
+    ):
+        statuses = [
+            first.post("/api/ai/test").status_code,
+            second.post("/api/ai/test").status_code,
+            first.post("/api/ai/test").status_code,
+        ]
+
+    assert statuses == [200, 200, 429]
+
+
+@pytest.mark.parametrize(
+    "origins",
+    [
+        None,
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://example.com",
+        "https://*.vercel.app",
+        "https://EXAMPLE.com",
+        "https://example.com:443",
+        "https://example.com/path",
+        "https://example.com:bad",
+    ],
+)
+def test_production_startup_requires_exact_public_cors_origin(
+    monkeypatch,
+    origins,
+):
+    from app import main
+
+    configure_production(monkeypatch)
+
+    if origins is None:
+        monkeypatch.delenv("CORS_ORIGINS", raising=False)
+    else:
+        monkeypatch.setenv("CORS_ORIGINS", origins)
+
+    with pytest.raises(RuntimeError, match="CORS_ORIGINS"):
+        with TestClient(main.app):
+            pass
+
+
+def test_production_startup_accepts_exact_public_cors_origin(
+    monkeypatch,
+):
+    from app import main
+
+    configure_production(monkeypatch)
+    monkeypatch.setenv("CORS_ORIGINS", "https://vizora.example.com")
+    monkeypatch.setattr(main, "initialize_database", lambda: None)
+
+    with TestClient(main.app) as client:
+        assert client.get("/api/health").status_code == 200
+
+
 def test_missing_app_env_fails_closed(
     monkeypatch,
 ):

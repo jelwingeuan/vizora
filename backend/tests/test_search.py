@@ -1,11 +1,15 @@
+import json
+
 from types import SimpleNamespace
 
+import httpx
 import pytest
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.routers import search
+from app.schemas.search import SemanticSearchItem
 from app.services import search_service
 
 
@@ -173,3 +177,41 @@ def test_semantic_search_rejects_incompatible_embedding_model(monkeypatch):
 
     assert response.status_code == 503
     assert "gemini-embedding-001" in response.json()["detail"]
+
+
+def test_supported_sdk_serializes_search_embeddings(monkeypatch):
+    requests = []
+
+    def respond_without_network(self, request, *args, **kwargs):
+        body = json.loads(request.content)
+        requests.extend(body["requests"])
+        return httpx.Response(
+            200,
+            json={
+                "embeddings": [
+                    {"values": [1.0] + [0.0] * 767}
+                    for _ in body["requests"]
+                ],
+            },
+            request=request,
+        )
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.delenv("GEMINI_EMBEDDING_MODEL", raising=False)
+    monkeypatch.setattr(httpx.Client, "send", respond_without_network)
+    search_service.cached_document_embeddings.cache_clear()
+
+    try:
+        results = search_service._semantic_search_sync(
+            "blue",
+            [SemanticSearchItem(id="one", title="One", text="blue")],
+        )
+
+        assert results[0].id == "one"
+        assert [request["taskType"] for request in requests] == [
+            "RETRIEVAL_QUERY",
+            "RETRIEVAL_DOCUMENT",
+        ]
+        assert all(request["outputDimensionality"] == 768 for request in requests)
+    finally:
+        search_service.cached_document_embeddings.cache_clear()

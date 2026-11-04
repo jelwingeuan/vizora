@@ -5,6 +5,7 @@ import json
 from io import BytesIO
 from types import SimpleNamespace
 
+import httpx
 import pytest
 
 from fastapi import FastAPI, HTTPException
@@ -262,3 +263,108 @@ def test_ai_service_rejects_oversize_before_client_creation(
             b"x" * (ai_service.MAX_INLINE_IMAGE_SIZE + 1),
             "image/png",
         )
+
+
+def test_supported_sdk_serializes_and_parses_analysis(
+    monkeypatch,
+):
+    analysis = ImageAnalysis(
+        summary="A colorful reference.",
+        subject="abstract shapes",
+        style=["geometric"],
+        mood=["bright"],
+        lighting="soft",
+        composition="centered",
+        color_palette=["#ff0000"],
+        tags=["abstract"],
+        creative_notes="Useful for a title card.",
+    )
+    requests = []
+
+    def respond_without_network(self, request, *args, **kwargs):
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "status": "completed",
+                "id": "test-interaction",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": analysis.model_dump_json(),
+                            },
+                        ],
+                    },
+                ],
+            },
+            request=request,
+        )
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(
+        httpx.Client,
+        "send",
+        respond_without_network,
+    )
+
+    result = ai_service.analyze_image_bytes(
+        b"image-data",
+        "image/png",
+    )
+
+    assert result == analysis
+    assert len(requests) == 1
+    assert requests[0].url.path == "/v1beta/interactions"
+
+    body = json.loads(requests[0].content)
+    assert body["input"][0]["content"][0] == {
+        "data": base64.b64encode(b"image-data").decode(),
+        "mime_type": "image/png",
+        "type": "image",
+    }
+    assert body["response_format"]["mime_type"] == "application/json"
+    assert body["store"] is False
+
+
+def test_supported_sdk_serializes_image_embedding(monkeypatch):
+    requests = []
+
+    async def respond_without_network(self, request, *args, **kwargs):
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "embeddings": [
+                    {"values": [1.0] + [0.0] * 767},
+                ],
+            },
+            request=request,
+        )
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.delenv("GEMINI_IMAGE_EMBEDDING_MODEL", raising=False)
+    monkeypatch.setattr(
+        httpx.AsyncClient,
+        "send",
+        respond_without_network,
+    )
+
+    result = asyncio.run(
+        embedding_service.generate_image_embedding(
+            b"image-data",
+            "image/png",
+        )
+    )
+
+    assert result.dimensions == 768
+    assert len(requests) == 1
+
+    body = json.loads(requests[0].content)
+    assert body["requests"][0]["content"]["parts"][0]["inline_data"] == {
+        "data": base64.b64encode(b"image-data").decode(),
+        "mime_type": "image/png",
+    }
+    assert body["requests"][0]["outputDimensionality"] == 768

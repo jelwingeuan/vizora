@@ -425,25 +425,10 @@ def get_rate_limit_rule(
 def get_client_identity(
     request: Request,
 ) -> str:
-    if request.client:
-        host = (
-            request.client.host
-        )
-
-    else:
-        host = "unknown"
-
-    token = (
-        request.headers.get(
-            ACCESS_HEADER_NAME,
-            "",
-        )
-    )
-
-    if token:
+    if is_access_control_enabled():
         token_digest = (
             hashlib.sha256(
-                token.encode(
+                get_access_token().encode(
                     "utf-8",
                 )
             )
@@ -452,14 +437,15 @@ def get_client_identity(
             ]
         )
 
-    else:
-        token_digest = (
-            "anonymous"
-        )
+        return f"owner:{token_digest}"
 
-    return (
-        f"{host}:{token_digest}"
+    host = (
+        request.client.host
+        if request.client
+        else "unknown"
     )
+
+    return f"host:{host}"
 
 
 def is_api_docs_enabled() -> bool:

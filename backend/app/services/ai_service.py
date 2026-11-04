@@ -102,6 +102,7 @@ def analyze_image_bytes(
     try:
         interaction = client.interactions.create(
             model=model,
+            store=False,
             input=[
                 {
                     "type": "image",
