@@ -46,6 +46,7 @@ import {
 
 import {
   embedImage,
+  getCachedImageEmbeddings,
 } from '../../services/embeddingService'
 
 import {
@@ -81,6 +82,10 @@ import type {
 } from '../../types/api'
 
 import type {
+  FindSimilarOptions,
+} from '../../types/embedding'
+
+import type {
   VisualReference,
 } from '../../types/image'
 
@@ -111,6 +116,9 @@ Record<
 
 const SIMILARITY_EMBEDDING_BATCH_SIZE =
   4
+
+const CACHED_EMBEDDING_BATCH_SIZE =
+  100
 
 
 export function AppLayout() {
@@ -659,7 +667,10 @@ export function AppLayout() {
   async function getImageEmbedding(
     image:
       VisualReference,
+    signal?: AbortSignal,
   ) {
+    signal?.throwIfAborted()
+
     const cachedEmbedding =
       imageEmbeddingCacheRef
         .current[
@@ -677,7 +688,10 @@ export function AppLayout() {
     const response =
       await embedImage(
         image,
+        signal,
       )
+
+    signal?.throwIfAborted()
 
     imageEmbeddingCacheRef
       .current[
@@ -694,6 +708,9 @@ export function AppLayout() {
   async function getCandidateEmbeddings(
     candidates:
       VisualReference[],
+    completedIds: Set<string>,
+    total: number,
+    options?: FindSimilarOptions,
   ): Promise<
     SimilarityCandidate[]
   > {
@@ -729,14 +746,26 @@ export function AppLayout() {
               embedding:
                 await getImageEmbedding(
                   candidate,
+                  options?.signal,
                 ),
             }),
           ),
         )
 
+      options?.signal?.throwIfAborted()
+
 
       embeddedCandidates.push(
         ...batchResults,
+      )
+
+      batchResults.forEach((result) => {
+        completedIds.add(result.id)
+      })
+
+      options?.onProgress?.(
+        completedIds.size,
+        total,
       )
     }
 
@@ -750,6 +779,7 @@ export function AppLayout() {
   async function handleFindSimilar(
     sourceImage:
       VisualReference,
+    options?: FindSimilarOptions,
   ) {
     const images = [
       ...uploadedImages,
@@ -774,15 +804,74 @@ export function AppLayout() {
       )
     }
 
+    const completedIds = new Set<string>()
+    const total = images.length
+    options?.onProgress?.(0, total)
+
+    const uploaded = images.filter(
+      (image) => image.source === 'upload',
+    )
+
+    for (
+      let index = 0;
+      index < uploaded.length;
+      index += CACHED_EMBEDDING_BATCH_SIZE
+    ) {
+      const batch = uploaded.slice(
+        index,
+        index + CACHED_EMBEDDING_BATCH_SIZE,
+      )
+
+      const response = await getCachedImageEmbeddings(
+        batch.map((image) => image.id),
+        options?.signal,
+      )
+
+      options?.signal?.throwIfAborted()
+
+      batch.forEach((image) => {
+        const cached = response.embeddings[image.id]
+
+        if (cached) {
+          imageEmbeddingCacheRef.current[image.id] = cached.embedding
+          completedIds.add(image.id)
+        } else {
+          delete imageEmbeddingCacheRef.current[image.id]
+        }
+      })
+
+      options?.onProgress?.(completedIds.size, total)
+    }
+
+    images.forEach((image) => {
+      if (
+        image.source === 'mock'
+        && imageEmbeddingCacheRef.current[image.id]
+      ) {
+        completedIds.add(image.id)
+      }
+    })
+
+    options?.onProgress?.(completedIds.size, total)
+
     const sourceEmbedding =
       await getImageEmbedding(
         sourceImage,
+        options?.signal,
       )
+
+    completedIds.add(sourceImage.id)
+    options?.onProgress?.(completedIds.size, total)
 
     const embeddedCandidates =
       await getCandidateEmbeddings(
         candidates,
+        completedIds,
+        total,
+        options,
       )
+
+    options?.signal?.throwIfAborted()
 
     if (
       embeddedCandidates.length ===

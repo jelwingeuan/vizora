@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -12,6 +13,10 @@ import type {
 import type {
   VisualReference,
 } from '../../types/image'
+
+import type {
+  FindSimilarOptions,
+} from '../../types/embedding'
 
 import {
   normalizeImageTag,
@@ -37,6 +42,7 @@ type ImageDetailPanelProps = {
   onFindSimilar: (
     image:
       VisualReference,
+    options?: FindSimilarOptions,
   ) => Promise<void>
 
   onSetFavorite?: (
@@ -89,6 +95,14 @@ export function ImageDetailPanel({
     >(null)
 
   const [
+    comparisonProgress,
+    setComparisonProgress,
+  ] = useState<{
+    completed: number
+    total: number
+  } | null>(null)
+
+  const [
     isUpdatingFavorite,
     setIsUpdatingFavorite,
   ] =
@@ -111,6 +125,20 @@ export function ImageDetailPanel({
     useRef<HTMLButtonElement>(
       null,
     )
+
+  const similarityAbortRef =
+    useRef<AbortController | null>(null)
+
+  const handleClose = useCallback(() => {
+    similarityAbortRef.current?.abort()
+    similarityAbortRef.current = null
+    onClose()
+  }, [onClose])
+
+  useEffect(() => () => {
+    similarityAbortRef.current?.abort()
+    similarityAbortRef.current = null
+  }, [image.id])
 
 
   useLayoutEffect(() => {
@@ -143,7 +171,7 @@ export function ImageDetailPanel({
         event.key ===
         'Escape'
       ) {
-        onClose()
+        handleClose()
 
         return
       }
@@ -228,7 +256,7 @@ export function ImageDetailPanel({
       )
     }
   }, [
-    onClose,
+    handleClose,
   ])
 
 
@@ -264,9 +292,14 @@ export function ImageDetailPanel({
 
 
   async function handleFindSimilar() {
+    const controller = new AbortController()
+    similarityAbortRef.current = controller
+
     setIsFindingSimilar(
       true,
     )
+
+    setComparisonProgress(null)
 
     setSimilarityError(
       null,
@@ -275,23 +308,37 @@ export function ImageDetailPanel({
     try {
       await onFindSimilar(
         image,
+        {
+          signal: controller.signal,
+          onProgress: (completed, total) => {
+            if (!controller.signal.aborted) {
+              setComparisonProgress({ completed, total })
+            }
+          },
+        },
       )
 
-      onClose()
+      if (!controller.signal.aborted) {
+        similarityAbortRef.current = null
+        setIsFindingSimilar(false)
+        handleClose()
+      }
 
     } catch (error) {
-      setSimilarityError(
-        error instanceof Error
-          ? error.message
-          : (
-              'Unable to find similar images.'
-            ),
-      )
+      if (!controller.signal.aborted) {
+        controller.abort()
+        setSimilarityError(
+          error instanceof Error
+            ? error.message
+            : 'Unable to find similar images.',
+        )
+      }
 
     } finally {
-      setIsFindingSimilar(
-        false,
-      )
+      if (similarityAbortRef.current === controller) {
+        similarityAbortRef.current = null
+        setIsFindingSimilar(false)
+      }
     }
   }
 
@@ -340,7 +387,7 @@ export function ImageDetailPanel({
     <div
       className="detail-panel-backdrop"
       onClick={
-        onClose
+        handleClose
       }
       role="presentation"
     >
@@ -373,7 +420,7 @@ export function ImageDetailPanel({
             type="button"
             aria-label="Close image details"
             onClick={
-              onClose
+              handleClose
             }
           >
             <svg
@@ -522,7 +569,9 @@ export function ImageDetailPanel({
                 </svg>
 
                 {isFindingSimilar
-                  ? 'Finding...'
+                  ? comparisonProgress
+                    ? `Comparing ${comparisonProgress.completed} of ${comparisonProgress.total}`
+                    : 'Finding...'
                   : 'Find similar'}
               </button>
             </div>

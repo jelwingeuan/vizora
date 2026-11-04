@@ -45,36 +45,62 @@ def get_stored_image_embedding(
         statement,
     )
 
-    if record is None:
-        return None
+    return to_image_embedding(
+        record,
+        model,
+        dimensions,
+    )
 
-    if (
-        record.model
-        != model
-    ):
-        return None
 
-    if (
-        record.dimensions
-        != dimensions
-    ):
-        return None
+def get_cached_image_embeddings(
+    database: Session,
+    public_ids: list[str],
+    model: str,
+    dimensions: int,
+) -> dict[str, ImageEmbedding]:
+    statement = (
+        select(
+            Image.public_id,
+            ImageEmbeddingRecord,
+        )
+        .join(
+            ImageEmbeddingRecord,
+            ImageEmbeddingRecord.image_id == Image.id,
+        )
+        .where(Image.public_id.in_(public_ids))
+    )
 
+    embeddings = {}
+
+    for public_id, record in database.execute(statement):
+        embedding = to_image_embedding(
+            record,
+            model,
+            dimensions,
+        )
+
+        if embedding is not None:
+            embeddings[public_id] = embedding
+
+    return embeddings
+
+
+def to_image_embedding(
+    record: ImageEmbeddingRecord | None,
+    model: str,
+    dimensions: int,
+) -> ImageEmbedding | None:
     if (
-        len(record.embedding)
-        != dimensions
+        record is None
+        or record.model != model
+        or record.dimensions != dimensions
+        or len(record.embedding) != dimensions
     ):
         return None
 
     return ImageEmbedding(
-        embedding=list(
-            record.embedding,
-        ),
-
-        dimensions=(
-            record.dimensions
-        ),
-
+        embedding=list(record.embedding),
+        dimensions=record.dimensions,
         model=record.model,
     )
 

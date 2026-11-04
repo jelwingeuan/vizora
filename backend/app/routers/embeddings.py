@@ -3,6 +3,7 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Response,
     UploadFile,
     status,
 )
@@ -20,6 +21,8 @@ from app.core.database import (
 )
 
 from app.schemas.embedding import (
+    CachedEmbeddingsRequest,
+    CachedEmbeddingsResponse,
     ImageEmbedding,
 )
 
@@ -33,6 +36,7 @@ from app.services.embedding_service import (
 
 from app.services.embedding_store_service import (
     EmbeddingStorageError,
+    get_cached_image_embeddings,
     get_stored_image_embedding,
     persist_image_embedding,
 )
@@ -53,6 +57,27 @@ router = APIRouter(
     prefix="/api/embeddings",
     tags=["embeddings"],
 )
+
+
+@router.post(
+    "/cached",
+    response_model=CachedEmbeddingsResponse,
+)
+def get_cached_embeddings(
+    request: CachedEmbeddingsRequest,
+    response: Response,
+    database: Session = Depends(get_db),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+
+    return CachedEmbeddingsResponse(
+        embeddings=get_cached_image_embeddings(
+            database=database,
+            public_ids=request.image_ids,
+            model=get_configured_embedding_model(),
+            dimensions=EMBEDDING_DIMENSIONS,
+        ),
+    )
 
 
 @router.post(

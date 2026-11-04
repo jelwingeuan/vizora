@@ -8,6 +8,7 @@ import {
 
 import {
   ACCESS_REVOKED_EVENT,
+  apiRequest,
   fetchWithAccess,
   getAccessToken,
   setAccessToken,
@@ -103,4 +104,29 @@ it('ignores a stale 401 after the owner token is replaced', async () => {
 
   expect(getAccessToken()).toBe('new-token')
   expect(onRevoked).not.toHaveBeenCalled()
+})
+
+
+it('keeps Retry-After on API rate-limit errors', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ detail: 'Try again shortly.' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '2',
+          },
+        },
+      ),
+    ),
+  )
+
+  await expect(apiRequest('/api/embeddings/image/test', { method: 'POST' }))
+    .rejects.toMatchObject({
+      status: 429,
+      retryAfterSeconds: 2,
+    })
 })

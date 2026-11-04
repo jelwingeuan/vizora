@@ -51,6 +51,9 @@ export class ApiError
   status:
     number
 
+  retryAfterSeconds:
+    number | null
+
 
   constructor(
     message:
@@ -58,6 +61,9 @@ export class ApiError
 
     status:
       number,
+
+    retryAfterSeconds:
+      number | null = null,
   ) {
     super(
       message,
@@ -68,6 +74,9 @@ export class ApiError
 
     this.status =
       status
+
+    this.retryAfterSeconds =
+      retryAfterSeconds
   }
 }
 
@@ -322,9 +331,20 @@ export async function apiRequest<T>(
     }
 
 
+    const retryAfter =
+      Number(
+        response.headers.get(
+          'Retry-After',
+        ),
+      )
+
     throw new ApiError(
       message,
       response.status,
+      Number.isFinite(retryAfter)
+      && retryAfter > 0
+        ? retryAfter
+        : null,
     )
   }
 

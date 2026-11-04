@@ -1,4 +1,5 @@
 import {
+  act,
   render,
   screen,
   waitFor,
@@ -20,6 +21,10 @@ import {
 import type {
   VisualReference,
 } from '../../types/image'
+
+import type {
+  FindSimilarOptions,
+} from '../../types/embedding'
 
 
 const uploadedImage:
@@ -259,6 +264,10 @@ describe(
               callbacks.onFindSimilar,
             ).toHaveBeenCalledWith(
               uploadedImage,
+              expect.objectContaining({
+                signal: expect.any(AbortSignal),
+                onProgress: expect.any(Function),
+              }),
             )
 
             expect(
@@ -311,6 +320,59 @@ describe(
 
         expect(callbacks.onClose)
           .not.toHaveBeenCalled()
+      },
+    )
+
+
+    it(
+      'shows comparison progress and aborts when closed',
+      async () => {
+        const user = userEvent.setup()
+        const callbacks = createCallbacks()
+        let finish!: () => void
+        let options!: FindSimilarOptions
+
+        callbacks.onFindSimilar.mockImplementation(
+          (_image, requestOptions) => {
+            options = requestOptions
+            return new Promise<void>((resolve) => {
+              finish = resolve
+            })
+          },
+        )
+
+        const { unmount } = render(
+          <ImageDetailPanel
+            image={uploadedImage}
+            onAnalyze={callbacks.onAnalyze}
+            onFindSimilar={callbacks.onFindSimilar}
+            onSetFavorite={callbacks.onSetFavorite}
+            onClose={callbacks.onClose}
+          />,
+        )
+
+        await user.click(screen.getByRole('button', { name: 'Find similar' }))
+
+        act(() => {
+          options.onProgress?.(2, 5)
+        })
+
+        expect(screen.getByRole('button', { name: 'Comparing 2 of 5' }))
+          .toBeDisabled()
+
+        await user.click(screen.getByRole('button', {
+          name: 'Close image details',
+        }))
+
+        expect(options.signal?.aborted).toBe(true)
+        expect(callbacks.onClose).toHaveBeenCalledTimes(1)
+
+        await act(async () => {
+          finish()
+        })
+
+        expect(callbacks.onClose).toHaveBeenCalledTimes(1)
+        unmount()
       },
     )
 
