@@ -96,7 +96,7 @@ https://example.invalid
 
 temporarily.
 
-Do not use `*`.
+The backend requires an explicit HTTPS frontend origin at startup. Do not use `*`, localhost, or an origin with a path. Replace the temporary value with the exact Vercel origin in step 5.
 
 Wait for the backend deployment to complete.
 
@@ -269,6 +269,8 @@ Uploads:
 ```
 
 Do not remove the Render persistent disk unless the VIZORA data has been backed up.
+
+Keep a separate backup of both `vizora.db` and `uploads/`, and test restoring them together before relying on it for recovery. Pause uploads while copying the files so the database and image directory represent the same state. [Render disk snapshots](https://render.com/docs/disks#disk-snapshots) are taken daily and retained for seven days; restoring one replaces the entire disk and discards changes made after that snapshot.
 
 ---
 
