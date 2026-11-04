@@ -33,10 +33,6 @@ export function ReferenceImage({
   } | null>(null)
 
   useEffect(() => {
-    if (image.source !== 'upload') {
-      return
-    }
-
     const controller = new AbortController()
     let objectUrl: string | undefined
     let observer: IntersectionObserver | undefined
@@ -107,13 +103,11 @@ export function ReferenceImage({
         URL.revokeObjectURL(objectUrl)
       }
     }
-  }, [image.source, image.src, loading])
+  }, [image.src, loading])
 
-  const src = image.source === 'mock'
-    ? image.src
-    : loaded?.source === image.src && !loaded.signal.aborted
-      ? loaded.url
-      : undefined
+  const src = loaded?.source === image.src && !loaded.signal.aborted
+    ? loaded.url
+    : undefined
 
   return (
     <img

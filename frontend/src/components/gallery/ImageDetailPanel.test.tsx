@@ -24,7 +24,7 @@ import type {
 
 import type {
   FindSimilarOptions,
-} from '../../types/embedding'
+} from '../../types/search'
 
 
 const uploadedImage:
@@ -51,9 +51,6 @@ VisualReference = {
 
   height:
     800,
-
-  source:
-    'upload',
 
   isFavorite:
     false,
@@ -266,7 +263,6 @@ describe(
               uploadedImage,
               expect.objectContaining({
                 signal: expect.any(AbortSignal),
-                onProgress: expect.any(Function),
               }),
             )
 
@@ -325,7 +321,7 @@ describe(
 
 
     it(
-      'shows comparison progress and aborts when closed',
+      'shows a pending state and aborts when closed',
       async () => {
         const user = userEvent.setup()
         const callbacks = createCallbacks()
@@ -353,11 +349,7 @@ describe(
 
         await user.click(screen.getByRole('button', { name: 'Find similar' }))
 
-        act(() => {
-          options.onProgress?.(2, 5)
-        })
-
-        expect(screen.getByRole('button', { name: 'Comparing 2 of 5' }))
+        expect(screen.getByRole('button', { name: 'Finding...' }))
           .toBeDisabled()
 
         await user.click(screen.getByRole('button', {

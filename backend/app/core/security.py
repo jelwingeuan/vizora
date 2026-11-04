@@ -95,11 +95,6 @@ DEFAULT_SEARCH_RATE_LIMIT = (
 )
 
 
-DEFAULT_EMBEDDING_RATE_LIMIT = (
-    240
-)
-
-
 DEFAULT_UPLOAD_RATE_LIMIT = (
     6
 )
@@ -324,14 +319,6 @@ def validate_security_configuration() -> None:
 
         get_positive_int_setting(
             (
-                "VIZORA_EMBEDDING_"
-                "RATE_LIMIT_PER_MINUTE"
-            ),
-            DEFAULT_EMBEDDING_RATE_LIMIT,
-        )
-
-        get_positive_int_setting(
-            (
                 "VIZORA_UPLOAD_"
                 "RATE_LIMIT_PER_MINUTE"
             ),
@@ -398,23 +385,6 @@ def get_rate_limit_rule(
                         "RATE_LIMIT_PER_MINUTE"
                     ),
                     DEFAULT_SEARCH_RATE_LIMIT,
-                )
-            ),
-        )
-
-    if path.startswith(
-        "/api/embeddings",
-    ):
-        return RateLimitRule(
-            name="embeddings",
-
-            limit=(
-                get_positive_int_setting(
-                    (
-                        "VIZORA_EMBEDDING_"
-                        "RATE_LIMIT_PER_MINUTE"
-                    ),
-                    DEFAULT_EMBEDDING_RATE_LIMIT,
                 )
             ),
         )

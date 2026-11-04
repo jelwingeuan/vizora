@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useRef,
   useState,
 } from 'react'
 
@@ -33,21 +32,12 @@ import {
 } from './TopBar'
 
 import {
-  mockImages,
-} from '../../data/mockImages'
-
-import {
   analyzeImage,
 } from '../../services/aiService'
 
 import {
   getHealth,
 } from '../../services/api'
-
-import {
-  embedImage,
-  getCachedImageEmbeddings,
-} from '../../services/embeddingService'
 
 import {
   deleteImage,
@@ -58,16 +48,9 @@ import {
 } from '../../services/imageService'
 
 import {
+  findSimilarImages,
   semanticSearch,
 } from '../../services/searchService'
-
-import {
-  rankSimilarImages,
-} from '../../utils/similarity'
-
-import type {
-  SimilarityCandidate,
-} from '../../utils/similarity'
 
 import {
   mergeImageTags,
@@ -83,7 +66,7 @@ import type {
 
 import type {
   FindSimilarOptions,
-} from '../../types/embedding'
+} from '../../types/search'
 
 import type {
   VisualReference,
@@ -92,10 +75,6 @@ import type {
 import type {
   WorkspaceSection,
 } from '../../types/navigation'
-
-import type {
-  SemanticSearchItem,
-} from '../../types/search'
 
 
 const sectionTitles:
@@ -112,13 +91,6 @@ Record<
   discover:
     'Discover',
 }
-
-
-const SIMILARITY_EMBEDDING_BATCH_SIZE =
-  4
-
-const CACHED_EMBEDDING_BATCH_SIZE =
-  100
 
 
 export function AppLayout() {
@@ -202,14 +174,6 @@ export function AppLayout() {
     useState<
       string | null
     >(null)
-
-  const imageEmbeddingCacheRef =
-    useRef<
-      Record<
-        string,
-        number[]
-      >
-    >({})
 
 
   useEffect(() => {
@@ -395,13 +359,6 @@ export function AppLayout() {
     isFavorite:
       boolean,
   ) {
-    if (
-      image.source !==
-      'upload'
-    ) {
-      return
-    }
-
     const persistedValue =
       await setImageFavorite(
         image.id,
@@ -437,13 +394,6 @@ export function AppLayout() {
     title:
       string,
   ) {
-    if (
-      image.source !==
-      'upload'
-    ) {
-      return
-    }
-
     const persistedTitle =
       await renameImage(
         image.id,
@@ -478,13 +428,6 @@ export function AppLayout() {
     image:
       VisualReference,
   ) {
-    if (
-      image.source !==
-      'upload'
-    ) {
-      return
-    }
-
     await deleteImage(
       image.id,
     )
@@ -518,13 +461,6 @@ export function AppLayout() {
       },
     )
 
-    delete (
-      imageEmbeddingCacheRef
-        .current[
-        image.id
-      ]
-    )
-
     handleClearDiscovery()
   }
 
@@ -545,23 +481,12 @@ export function AppLayout() {
       return
     }
 
-    const images = [
-      ...uploadedImages,
-      ...mockImages,
-    ]
-
     if (
-      images.length ===
+      uploadedImages.length ===
       0
     ) {
       return
     }
-
-    const items =
-      createSemanticSearchItems(
-        images,
-        imageAnalyses,
-      )
 
     setSimilarImageIds(
       null,
@@ -583,7 +508,6 @@ export function AppLayout() {
       const response =
         await semanticSearch(
           query,
-          items,
         )
 
       setSearchResultIds(
@@ -631,28 +555,16 @@ export function AppLayout() {
       return []
     }
 
-    const images = [
-      ...uploadedImages,
-      ...mockImages,
-    ]
-
     if (
-      images.length ===
+      uploadedImages.length ===
       0
     ) {
       return []
     }
 
-    const items =
-      createSemanticSearchItems(
-        images,
-        imageAnalyses,
-      )
-
     const response =
       await semanticSearch(
         normalizedQuery,
-        items,
       )
 
     return response.results.map(
@@ -664,130 +576,13 @@ export function AppLayout() {
   }
 
 
-  async function getImageEmbedding(
-    image:
-      VisualReference,
-    signal?: AbortSignal,
-  ) {
-    signal?.throwIfAborted()
-
-    const cachedEmbedding =
-      imageEmbeddingCacheRef
-        .current[
-        image.id
-      ]
-
-    if (
-      cachedEmbedding
-    ) {
-      return (
-        cachedEmbedding
-      )
-    }
-
-    const response =
-      await embedImage(
-        image,
-        signal,
-      )
-
-    signal?.throwIfAborted()
-
-    imageEmbeddingCacheRef
-      .current[
-      image.id
-    ] =
-      response.embedding
-
-    return (
-      response.embedding
-    )
-  }
-
-
-  async function getCandidateEmbeddings(
-    candidates:
-      VisualReference[],
-    completedIds: Set<string>,
-    total: number,
-    options?: FindSimilarOptions,
-  ): Promise<
-    SimilarityCandidate[]
-  > {
-    const embeddedCandidates:
-      SimilarityCandidate[] = []
-
-
-    for (
-      let index = 0;
-      index < candidates.length;
-      index +=
-        SIMILARITY_EMBEDDING_BATCH_SIZE
-    ) {
-      const batch =
-        candidates.slice(
-          index,
-
-          index
-          +
-          SIMILARITY_EMBEDDING_BATCH_SIZE,
-        )
-
-
-      const batchResults =
-        await Promise.all(
-          batch.map(
-            async (
-              candidate,
-            ) => ({
-              id:
-                candidate.id,
-
-              embedding:
-                await getImageEmbedding(
-                  candidate,
-                  options?.signal,
-                ),
-            }),
-          ),
-        )
-
-      options?.signal?.throwIfAborted()
-
-
-      embeddedCandidates.push(
-        ...batchResults,
-      )
-
-      batchResults.forEach((result) => {
-        completedIds.add(result.id)
-      })
-
-      options?.onProgress?.(
-        completedIds.size,
-        total,
-      )
-    }
-
-
-    return (
-      embeddedCandidates
-    )
-  }
-
-
   async function handleFindSimilar(
     sourceImage:
       VisualReference,
     options?: FindSimilarOptions,
   ) {
-    const images = [
-      ...uploadedImages,
-      ...mockImages,
-    ]
-
-    const candidates =
-      images.filter(
+    const hasCandidates =
+      uploadedImages.some(
         (
           image,
         ) =>
@@ -796,100 +591,28 @@ export function AppLayout() {
       )
 
     if (
-      candidates.length ===
-      0
+      !hasCandidates
     ) {
       throw new Error(
         'There are no other references to compare.',
       )
     }
 
-    const completedIds = new Set<string>()
-    const total = images.length
-    options?.onProgress?.(0, total)
-
-    const uploaded = images.filter(
-      (image) => image.source === 'upload',
-    )
-
-    for (
-      let index = 0;
-      index < uploaded.length;
-      index += CACHED_EMBEDDING_BATCH_SIZE
-    ) {
-      const batch = uploaded.slice(
-        index,
-        index + CACHED_EMBEDDING_BATCH_SIZE,
-      )
-
-      const response = await getCachedImageEmbeddings(
-        batch.map((image) => image.id),
+    const response =
+      await findSimilarImages(
+        sourceImage.id,
         options?.signal,
-      )
-
-      options?.signal?.throwIfAborted()
-
-      batch.forEach((image) => {
-        const cached = response.embeddings[image.id]
-
-        if (cached) {
-          imageEmbeddingCacheRef.current[image.id] = cached.embedding
-          completedIds.add(image.id)
-        } else {
-          delete imageEmbeddingCacheRef.current[image.id]
-        }
-      })
-
-      options?.onProgress?.(completedIds.size, total)
-    }
-
-    images.forEach((image) => {
-      if (
-        image.source === 'mock'
-        && imageEmbeddingCacheRef.current[image.id]
-      ) {
-        completedIds.add(image.id)
-      }
-    })
-
-    options?.onProgress?.(completedIds.size, total)
-
-    const sourceEmbedding =
-      await getImageEmbedding(
-        sourceImage,
-        options?.signal,
-      )
-
-    completedIds.add(sourceImage.id)
-    options?.onProgress?.(completedIds.size, total)
-
-    const embeddedCandidates =
-      await getCandidateEmbeddings(
-        candidates,
-        completedIds,
-        total,
-        options,
       )
 
     options?.signal?.throwIfAborted()
 
-    if (
-      embeddedCandidates.length ===
-      0
-    ) {
-      throw new Error(
-        'Unable to generate comparison embeddings.',
-      )
-    }
-
-    const rankedImageIds =
-      rankSimilarImages(
-        sourceEmbedding,
-        embeddedCandidates,
-      )
-
     setSimilarImageIds(
-      rankedImageIds,
+      response.results.map(
+        (
+          result,
+        ) =>
+          result.id,
+      ),
     )
 
     setSimilarSourceTitle(
@@ -977,10 +700,7 @@ export function AppLayout() {
         return (
           <DiscoverWorkspace
             images={
-              [
-                ...uploadedImages,
-                ...mockImages,
-              ].map(
+              uploadedImages.map(
                 (
                   image,
                 ) =>
@@ -1237,10 +957,8 @@ function LibraryWorkspace({
     >('all')
 
 
-  const baseImages = [
-    ...uploadedImages,
-    ...mockImages,
-  ]
+  const baseImages =
+    uploadedImages
 
   const images =
     baseImages.map(
@@ -1687,76 +1405,6 @@ function applyAnalysisTags(
         image.tags,
       ),
   }
-}
-
-
-function createSemanticSearchItems(
-  images:
-    VisualReference[],
-
-  imageAnalyses:
-    Record<
-      string,
-      ImageAnalysis
-    >,
-): SemanticSearchItem[] {
-  return images.map(
-    (
-      image,
-    ) => ({
-      id:
-        image.id,
-
-      title:
-        image.title,
-
-      text:
-        buildSearchText(
-          image,
-
-          imageAnalyses[
-            image.id
-          ],
-        ),
-    }),
-  )
-}
-
-
-function buildSearchText(
-  image:
-    VisualReference,
-
-  analysis?:
-    ImageAnalysis,
-) {
-  const sections = [
-    `Tags: ${image.tags.join(', ')}`,
-  ]
-
-  if (analysis) {
-    sections.push(
-      `Summary: ${analysis.summary}`,
-
-      `Subject: ${analysis.subject}`,
-
-      `Style: ${analysis.style.join(', ')}`,
-
-      `Mood: ${analysis.mood.join(', ')}`,
-
-      `Lighting: ${analysis.lighting}`,
-
-      `Composition: ${analysis.composition}`,
-
-      `AI tags: ${analysis.tags.join(', ')}`,
-
-      `Creative notes: ${analysis.creative_notes}`,
-    )
-  }
-
-  return sections.join(
-    '\n',
-  )
 }
 
 

@@ -1,8 +1,3 @@
-export type VisualReferenceSource =
-  | 'mock'
-  | 'upload'
-
-
 export type VisualReference = {
   id: string
 
@@ -17,9 +12,6 @@ export type VisualReference = {
   width: number
 
   height: number
-
-  source:
-    VisualReferenceSource
 
   isFavorite:
     boolean

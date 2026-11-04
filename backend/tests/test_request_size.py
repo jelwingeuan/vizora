@@ -30,8 +30,6 @@ def test_declared_oversized_upload_is_rejected(path: str):
     "path,field",
     [
         ("/api/images", "images"),
-        ("/api/ai/analyze", "image"),
-        ("/api/embeddings/image", "image"),
     ],
 )
 def test_streamed_oversized_upload_is_rejected(

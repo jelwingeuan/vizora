@@ -16,7 +16,7 @@ import type {
 
 import type {
   FindSimilarOptions,
-} from '../../types/embedding'
+} from '../../types/search'
 
 import {
   normalizeImageTag,
@@ -93,14 +93,6 @@ export function ImageDetailPanel({
     useState<
       string | null
     >(null)
-
-  const [
-    comparisonProgress,
-    setComparisonProgress,
-  ] = useState<{
-    completed: number
-    total: number
-  } | null>(null)
 
   const [
     isUpdatingFavorite,
@@ -299,8 +291,6 @@ export function ImageDetailPanel({
       true,
     )
 
-    setComparisonProgress(null)
-
     setSimilarityError(
       null,
     )
@@ -310,11 +300,6 @@ export function ImageDetailPanel({
         image,
         {
           signal: controller.signal,
-          onProgress: (completed, total) => {
-            if (!controller.signal.aborted) {
-              setComparisonProgress({ completed, total })
-            }
-          },
         },
       )
 
@@ -346,8 +331,6 @@ export function ImageDetailPanel({
   async function handleFavorite() {
     if (
       !onSetFavorite
-      || image.source !==
-        'upload'
     ) {
       return
     }
@@ -455,10 +438,7 @@ export function ImageDetailPanel({
 
               <div className="detail-preview-badges">
                 <span className="detail-preview-source">
-                  {image.source ===
-                  'upload'
-                    ? 'Uploaded'
-                    : 'Demo'}
+                  Uploaded
                 </span>
 
                 {image.isFavorite && (
@@ -491,23 +471,13 @@ export function ImageDetailPanel({
               </div>
 
               <p>
-                {image.source ===
-                'upload'
-                  ? (
-                      'Saved visual reference in your VIZORA library.'
-                    )
-                  : (
-                      'Demo visual reference available for exploration.'
-                    )}
+                Saved visual reference in your VIZORA library.
               </p>
             </div>
 
 
             <div className="detail-primary-actions">
-              {(
-                image.source ===
-                'upload'
-              ) && onSetFavorite && (
+              {onSetFavorite && (
                 <button
                   className={
                     `detail-action-button detail-favorite-button ${
@@ -569,9 +539,7 @@ export function ImageDetailPanel({
                 </svg>
 
                 {isFindingSimilar
-                  ? comparisonProgress
-                    ? `Comparing ${comparisonProgress.completed} of ${comparisonProgress.total}`
-                    : 'Finding...'
+                  ? 'Finding...'
                   : 'Find similar'}
               </button>
             </div>
@@ -641,10 +609,7 @@ export function ImageDetailPanel({
                 </dt>
 
                 <dd>
-                  {image.source ===
-                  'upload'
-                    ? 'Upload'
-                    : 'Demo'}
+                  Upload
                 </dd>
               </div>
 

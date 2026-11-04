@@ -1,7 +1,6 @@
 import {
   render,
   screen,
-  waitFor,
 } from '@testing-library/react'
 
 import userEvent from '@testing-library/user-event'
@@ -21,8 +20,7 @@ import type {
 const services = vi.hoisted(() => ({
   getHealth: vi.fn(),
   getImages: vi.fn(),
-  getCachedImageEmbeddings: vi.fn(),
-  embedImage: vi.fn(),
+  findSimilarImages: vi.fn(),
 }))
 
 
@@ -39,12 +37,10 @@ vi.mock('../../services/imageService', () => ({
   uploadImages: vi.fn(),
 }))
 
-vi.mock('../../services/embeddingService', () => ({
-  getCachedImageEmbeddings: services.getCachedImageEmbeddings,
-  embedImage: services.embedImage,
+vi.mock('../../services/searchService', () => ({
+  findSimilarImages: services.findSimilarImages,
+  semanticSearch: vi.fn(),
 }))
-
-vi.mock('../../data/mockImages', () => ({ mockImages: [] }))
 
 vi.mock('../gallery/ImageGrid', () => ({
   ImageGrid: ({
@@ -88,7 +84,6 @@ function makeImage(index: number): VisualReference {
     tags: [],
     width: 1,
     height: 1,
-    source: 'upload',
     isFavorite: false,
     createdAt: null,
   }
@@ -98,75 +93,18 @@ function makeImage(index: number): VisualReference {
 beforeEach(() => {
   vi.clearAllMocks()
   services.getHealth.mockResolvedValue({ status: 'ok' })
-  services.embedImage.mockRejectedValue(new Error('Unexpected provider call'))
 })
 
 
-it('prefills 501 stored vectors in bounded batches before comparing', async () => {
-  const images: VisualReference[] = Array.from(
-    { length: 501 },
-    (_, index) => makeImage(index),
-  )
-
-  services.getImages.mockResolvedValue(
-    images.map((image) => ({ image, analysis: null })),
-  )
-
-  services.getCachedImageEmbeddings.mockImplementation(
-    async (imageIds: string[]) => ({
-      embeddings: Object.fromEntries(
-        imageIds.map((id) => [
-          id,
-          { embedding: [1, 0], dimensions: 2, model: 'test-model' },
-        ]),
-      ),
-    }),
-  )
-
-  const user = userEvent.setup()
-  render(<AppLayout />)
-
-  await user.click(await screen.findByRole('button', {
-    name: 'Open reference',
-  }))
-
-  await user.click(screen.getByRole('button', {
-    name: 'Find similar now',
-  }))
-
-  await screen.findByText(/Visually similar to/)
-
-  await waitFor(() => {
-    expect(services.getCachedImageEmbeddings).toHaveBeenCalledTimes(6)
-    expect(services.embedImage).not.toHaveBeenCalled()
-  })
-
-  expect(
-    services.getCachedImageEmbeddings.mock.calls.map(
-      ([imageIds]) => imageIds.length,
-    ),
-  ).toEqual([100, 100, 100, 100, 100, 1])
-})
-
-
-it('generates only the stored vectors absent from the batch', async () => {
+it('compares a reference with one backend request', async () => {
   const images = [makeImage(0), makeImage(1)]
+
   services.getImages.mockResolvedValue(
     images.map((image) => ({ image, analysis: null })),
   )
-  services.getCachedImageEmbeddings.mockResolvedValue({
-    embeddings: {
-      'image-0': {
-        embedding: [1, 0],
-        dimensions: 2,
-        model: 'test-model',
-      },
-    },
-  })
-  services.embedImage.mockResolvedValue({
-    embedding: [1, 0],
-    dimensions: 2,
-    model: 'test-model',
+
+  services.findSimilarImages.mockResolvedValue({
+    results: [{ id: 'image-1', score: 0.9 }],
   })
 
   const user = userEvent.setup()
@@ -175,12 +113,16 @@ it('generates only the stored vectors absent from the batch', async () => {
   await user.click(await screen.findByRole('button', {
     name: 'Open reference',
   }))
+
   await user.click(screen.getByRole('button', {
     name: 'Find similar now',
   }))
 
   await screen.findByText(/Visually similar to/)
-  expect(services.getCachedImageEmbeddings).toHaveBeenCalledTimes(1)
-  expect(services.embedImage).toHaveBeenCalledOnce()
-  expect(services.embedImage).toHaveBeenCalledWith(images[1], undefined)
+
+  expect(services.findSimilarImages).toHaveBeenCalledOnce()
+  expect(services.findSimilarImages).toHaveBeenCalledWith(
+    'image-0',
+    undefined,
+  )
 })

@@ -37,14 +37,9 @@ from app.routers import (
     access,
     ai,
     boards,
-    embeddings,
     health,
     images,
     search,
-)
-
-from app.services.image_service import (
-    MAX_IMAGE_SIZE,
 )
 
 
@@ -66,15 +61,6 @@ UPLOAD_BODY_LIMITS = {
         images.MAX_UPLOAD_REQUEST_SIZE
         + MULTIPART_OVERHEAD_BYTES
     ),
-    "/api/ai/analyze": (
-        MAX_IMAGE_SIZE
-        + MULTIPART_OVERHEAD_BYTES
-    ),
-    "/api/embeddings/image": (
-        MAX_IMAGE_SIZE
-        + MULTIPART_OVERHEAD_BYTES
-    ),
-    "/api/embeddings/cached": 32 * 1024,
 }
 
 
@@ -248,10 +234,6 @@ app.include_router(
 
 app.include_router(
     search.router,
-)
-
-app.include_router(
-    embeddings.router,
 )
 
 app.include_router(

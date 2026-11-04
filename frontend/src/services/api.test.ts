@@ -124,7 +124,7 @@ it('keeps Retry-After on API rate-limit errors', async () => {
     ),
   )
 
-  await expect(apiRequest('/api/embeddings/image/test', { method: 'POST' }))
+  await expect(apiRequest('/api/search/similar/test', { method: 'POST' }))
     .rejects.toMatchObject({
       status: 429,
       retryAfterSeconds: 2,

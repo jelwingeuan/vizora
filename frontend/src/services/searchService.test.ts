@@ -10,6 +10,7 @@ import {
 } from './api'
 
 import {
+  findSimilarImages,
   semanticSearch,
 } from './searchService'
 
@@ -22,42 +23,45 @@ vi.mock('./api', () => ({
 const mockedApiRequest = vi.mocked(apiRequest)
 
 
-function createItems(count: number) {
-  return Array.from(
-    { length: count },
-    (_, index) => ({
-      id: `image-${index}`,
-      title: `Reference ${index}`,
-      text: 'Visual metadata',
-    }),
-  )
-}
-
-
 beforeEach(() => {
   vi.clearAllMocks()
 })
 
 
-it('submits every reference in a 500-item library', async () => {
+it('sends only the trimmed query for semantic search', async () => {
   mockedApiRequest.mockResolvedValueOnce({ results: [] })
 
-  await semanticSearch('needle', createItems(500))
+  await semanticSearch('  needle  ')
 
   const options = mockedApiRequest.mock.calls[0][1]
-  const body = JSON.parse(String(options?.body))
 
-  expect(body.items).toHaveLength(500)
-  expect(body.items[499].id).toBe('image-499')
+  expect(JSON.parse(String(options?.body))).toEqual({
+    query: 'needle',
+  })
 })
 
 
-it('reports the supported limit without submitting a larger library', async () => {
+it('rejects an empty query without calling the API', async () => {
   await expect(
-    semanticSearch('needle', createItems(501)),
-  ).rejects.toThrow(
-    'Semantic search supports up to 500 references. This library has 501.',
-  )
+    semanticSearch('   '),
+  ).rejects.toThrow('Search query cannot be empty.')
 
   expect(mockedApiRequest).not.toHaveBeenCalled()
+})
+
+
+it('requests similar images with an abort signal', async () => {
+  const controller = new AbortController()
+
+  mockedApiRequest.mockResolvedValueOnce({ results: [] })
+
+  await findSimilarImages('image/1', controller.signal)
+
+  expect(mockedApiRequest).toHaveBeenCalledWith(
+    '/api/search/similar/image%2F1',
+    {
+      method: 'POST',
+      signal: controller.signal,
+    },
+  )
 })

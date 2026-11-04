@@ -56,7 +56,6 @@ const uploadedImage: VisualReference = {
   tags: ['uploaded'],
   width: 8,
   height: 6,
-  source: 'upload',
   isFavorite: false,
   createdAt: '2026-09-06T10:00:00Z',
 }
@@ -219,30 +218,6 @@ it('never sends the owner header to another origin', async () => {
   const options = fetchMock.mock.calls[0][1] as RequestInit
 
   expect(new Headers(options.headers).has('X-Vizora-Token')).toBe(false)
-})
-
-
-it('displays demo images without an authenticated fetch', () => {
-  const fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-
-  render(
-    <ReferenceImage
-      image={{
-        ...uploadedImage,
-        source: 'mock',
-        src: 'https://picsum.photos/demo',
-      }}
-      alt="Demo image"
-      loading="lazy"
-    />,
-  )
-
-  expect(screen.getByRole('img')).toHaveAttribute(
-    'src',
-    'https://picsum.photos/demo',
-  )
-  expect(fetchMock).not.toHaveBeenCalled()
 })
 
 

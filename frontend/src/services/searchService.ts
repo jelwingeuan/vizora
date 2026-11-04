@@ -1,16 +1,13 @@
 import { apiRequest } from './api'
 
 import type {
-  SemanticSearchItem,
-  SemanticSearchResponse,
+  SearchResponse,
 } from '../types/search'
 
-const MAX_SEMANTIC_SEARCH_ITEMS = 500
 
 export async function semanticSearch(
   query: string,
-  items: SemanticSearchItem[],
-): Promise<SemanticSearchResponse> {
+): Promise<SearchResponse> {
   const normalizedQuery =
     query.trim()
 
@@ -20,32 +17,35 @@ export async function semanticSearch(
     )
   }
 
-  if (items.length === 0) {
-    return {
-      results: [],
-    }
-  }
-
-  if (items.length > MAX_SEMANTIC_SEARCH_ITEMS) {
-    throw new Error(
-      `Semantic search supports up to ${MAX_SEMANTIC_SEARCH_ITEMS} references. This library has ${items.length}.`,
-    )
-  }
-
-  return apiRequest<SemanticSearchResponse>(
+  return apiRequest<SearchResponse>(
     '/api/search/semantic',
     {
       method: 'POST',
-
       headers: {
         'Content-Type':
           'application/json',
       },
-
       body: JSON.stringify({
         query: normalizedQuery,
-        items,
       }),
+    },
+  )
+}
+
+
+export async function findSimilarImages(
+  imageId: string,
+  signal?: AbortSignal,
+): Promise<SearchResponse> {
+  return apiRequest<SearchResponse>(
+    `/api/search/similar/${
+      encodeURIComponent(
+        imageId,
+      )
+    }`,
+    {
+      method: 'POST',
+      signal,
     },
   )
 }
