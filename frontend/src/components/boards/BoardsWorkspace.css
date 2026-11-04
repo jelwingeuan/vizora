@@ -61,7 +61,7 @@
 }
 
 .boards-count {
-  color: #626773;
+  color: #858a97;
 
   font-size: 12px;
 }
@@ -87,8 +87,8 @@
   background:
     linear-gradient(
       135deg,
-      #745cff,
-      #9c68ff
+      #7656dc,
+      #815bd9
     );
 
   color: #ffffff;
@@ -527,7 +527,7 @@
 
   margin: 12px 0 0;
 
-  color: #666b76;
+  color: #858a97;
 
   font-size: 12px;
   line-height: 1.7;

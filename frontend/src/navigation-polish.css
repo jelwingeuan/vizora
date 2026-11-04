@@ -166,7 +166,7 @@
     0 12px;
 
   color:
-    #505562;
+    #858a97;
 
   font-size:
     9px;
@@ -471,7 +471,7 @@
 
 .nav-item-description {
   color:
-    #505562;
+    #858a97;
 
   font-size:
     9px;
@@ -490,14 +490,14 @@
 .nav-item:hover
 .nav-item-description {
   color:
-    #6e7380;
+    #a3a8b5;
 }
 
 
 .nav-item-active
 .nav-item-description {
   color:
-    #7f779f;
+    #9b92bf;
 }
 
 
@@ -610,7 +610,7 @@
 
 .sidebar-status-detail {
   color:
-    #4f5460;
+    #858a97;
 
   font-size:
     8px;

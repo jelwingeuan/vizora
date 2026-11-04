@@ -96,7 +96,7 @@ https://example.invalid
 
 temporarily.
 
-Do not use `*`.
+The backend requires an explicit HTTPS frontend origin at startup. Do not use `*`, localhost, or an origin with a path. Replace the temporary value with the exact Vercel origin in step 5.
 
 Wait for the backend deployment to complete.
 
@@ -165,6 +165,8 @@ VITE_API_BASE_URL=https://YOUR-RENDER-URL
 ```
 
 Do not put the VIZORA access token in Vercel environment variables.
+
+`frontend/vercel.json` sends a Content-Security-Policy whose `connect-src` allows `https://*.onrender.com`. Once you know your Render URL, replace that wildcard with the exact origin (for example `https://vizora-api.onrender.com`). If the API is on a custom domain, add that domain there instead, or the frontend will be blocked from calling it.
 
 Deploy the project.
 
@@ -266,6 +268,8 @@ Uploads:
 
 Do not remove the Render persistent disk unless the VIZORA data has been backed up.
 
+Keep a separate backup of both `vizora.db` and `uploads/`, and test restoring them together before relying on it for recovery. Pause uploads while copying the files so the database and image directory represent the same state. [Render disk snapshots](https://render.com/docs/disks#disk-snapshots) are taken daily and retained for seven days; restoring one replaces the entire disk and discards changes made after that snapshot.
+
 ---
 
 ## Database migrations
@@ -303,6 +307,8 @@ VITE_*
 ```
 
 because Vite environment values are compiled into the frontend bundle.
+
+The backend fails closed: if `APP_ENV` is missing or empty, it is treated as `production`, so the access token is required and the API docs (`/docs`, `/redoc`, `/openapi.json`) are disabled. Only an explicit `APP_ENV=development` or `APP_ENV=test` runs without a token.
 
 ---
 

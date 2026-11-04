@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 import math
@@ -9,6 +10,10 @@ from collections.abc import (
 
 from functools import (
     lru_cache,
+)
+
+from io import (
+    BytesIO,
 )
 
 from typing import (
@@ -25,6 +30,11 @@ from google import genai
 
 from google.genai import (
     types,
+)
+
+from PIL import (
+    Image as PillowImage,
+    UnidentifiedImageError,
 )
 
 from app.schemas.analysis import (
@@ -55,6 +65,14 @@ DEFAULT_IMAGE_EMBEDDING_MODEL = (
 EMBEDDING_DIMENSIONS = 768
 
 TEXT_EMBEDDING_BATCH_SIZE = 24
+
+MAX_EMBEDDING_IMAGE_DIMENSION = 2048
+
+MAX_INLINE_IMAGE_SIZE = 14 * 1024 * 1024
+
+INLINE_IMAGE_TOO_LARGE_DETAIL = (
+    "AI analysis images must be no larger than 14 MiB."
+)
 
 
 TextTask = Literal[
@@ -118,6 +136,12 @@ class AIServiceError(
     RuntimeError,
 ):
     """The AI provider failed or returned unusable output (HTTP 502)."""
+
+
+class AIImageSizeError(
+    RuntimeError,
+):
+    """The image is too large to send to the provider (HTTP 413)."""
 
 
 class VisualAI(
@@ -189,6 +213,11 @@ class GeminiVisualAI:
         image_bytes: bytes,
         mime_type: str,
     ) -> ImageAnalysis:
+        if len(image_bytes) > MAX_INLINE_IMAGE_SIZE:
+            raise AIImageSizeError(
+                INLINE_IMAGE_TOO_LARGE_DETAIL
+            )
+
         def run(
             client: genai.Client,
         ) -> ImageAnalysis:
@@ -219,6 +248,8 @@ class GeminiVisualAI:
                         .model_json_schema()
                     ),
                 },
+
+                store=False,
             )
 
             if not interaction.output_text:
@@ -240,6 +271,13 @@ class GeminiVisualAI:
         image_bytes: bytes,
         mime_type: str,
     ) -> list[float]:
+        prepared_bytes, prepared_mime_type = (
+            prepare_embedding_image(
+                image_bytes,
+                mime_type,
+            )
+        )
+
         def run(
             client: genai.Client,
         ) -> list[float]:
@@ -251,8 +289,8 @@ class GeminiVisualAI:
 
                     contents=[
                         types.Part.from_bytes(
-                            data=image_bytes,
-                            mime_type=mime_type,
+                            data=prepared_bytes,
+                            mime_type=prepared_mime_type,
                         ),
                     ],
 
@@ -289,6 +327,16 @@ class GeminiVisualAI:
     ) -> list[list[float]]:
         if not texts:
             return []
+
+        if (
+            self.text_embedding_model
+            .removeprefix("models/")
+            != DEFAULT_TEXT_EMBEDDING_MODEL
+        ):
+            raise AIConfigurationError(
+                "GEMINI_EMBEDDING_MODEL must use "
+                f"{DEFAULT_TEXT_EMBEDDING_MODEL}."
+            )
 
         def run(
             client: genai.Client,
@@ -398,20 +446,89 @@ class GeminiVisualAI:
             ) from error
 
         finally:
-            client.close()
+            try:
+                client.close()
+
+            finally:
+                asyncio.run(
+                    client.aio.aclose(),
+                )
+
+
+def prepare_embedding_image(
+    image_bytes: bytes,
+    mime_type: str,
+) -> tuple[bytes, str]:
+    if mime_type != "image/webp":
+        return image_bytes, mime_type
+
+    try:
+        with PillowImage.open(
+            BytesIO(image_bytes),
+        ) as image:
+            image.thumbnail(
+                (
+                    MAX_EMBEDDING_IMAGE_DIMENSION,
+                    MAX_EMBEDDING_IMAGE_DIMENSION,
+                ),
+                PillowImage.Resampling.LANCZOS,
+            )
+
+            rgba_image = image.convert("RGBA")
+
+            background = PillowImage.new(
+                "RGBA",
+                rgba_image.size,
+                (255, 255, 255, 255),
+            )
+
+            background.alpha_composite(rgba_image)
+
+            output = BytesIO()
+
+            background.convert("RGB").save(
+                output,
+                format="JPEG",
+                quality=85,
+                optimize=True,
+            )
+
+            return output.getvalue(), "image/jpeg"
+
+    except (
+        UnidentifiedImageError,
+        OSError,
+        ValueError,
+    ) as error:
+        raise AIServiceError(
+            "Unable to prepare WebP image for embedding."
+        ) from error
 
 
 def normalize_vector(
     values: list[float],
 ) -> list[float]:
-    magnitude = math.sqrt(
-        sum(
-            value * value
-            for value in values
+    if len(values) != EMBEDDING_DIMENSIONS:
+        raise AIServiceError(
+            "Gemini returned an embedding "
+            "with an unexpected dimension."
         )
-    )
 
-    if magnitude == 0:
+    if not all(
+        math.isfinite(value)
+        for value in values
+    ):
+        raise AIServiceError(
+            "Gemini returned an embedding "
+            "with non-finite values."
+        )
+
+    magnitude = math.hypot(*values)
+
+    if (
+        not math.isfinite(magnitude)
+        or magnitude == 0
+    ):
         raise AIServiceError(
             "Gemini returned an empty embedding."
         )

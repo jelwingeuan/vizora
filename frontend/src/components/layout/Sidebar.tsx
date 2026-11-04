@@ -64,6 +64,7 @@ export function Sidebar({
                 : ''
             }`}
             type="button"
+            aria-label="Library"
             onClick={() =>
               onNavigate(
                 'library',
@@ -137,6 +138,7 @@ export function Sidebar({
                 : ''
             }`}
             type="button"
+            aria-label="Boards"
             onClick={() =>
               onNavigate(
                 'boards',
@@ -180,6 +182,7 @@ export function Sidebar({
                 : ''
             }`}
             type="button"
+            aria-label="Discover"
             onClick={() =>
               onNavigate(
                 'discover',

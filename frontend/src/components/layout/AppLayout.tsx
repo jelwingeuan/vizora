@@ -65,6 +65,10 @@ import type {
 } from '../../types/api'
 
 import type {
+  FindSimilarOptions,
+} from '../../types/search'
+
+import type {
   VisualReference,
 } from '../../types/image'
 
@@ -575,6 +579,7 @@ export function AppLayout() {
   async function handleFindSimilar(
     sourceImage:
       VisualReference,
+    options?: FindSimilarOptions,
   ) {
     const hasCandidates =
       uploadedImages.some(
@@ -596,7 +601,10 @@ export function AppLayout() {
     const response =
       await findSimilarImages(
         sourceImage.id,
+        options?.signal,
       )
+
+    options?.signal?.throwIfAborted()
 
     setSimilarImageIds(
       response.results.map(

@@ -411,3 +411,43 @@ def test_missing_image_returns_404(
         delete_response.status_code
         == 404
     )
+
+
+def test_partial_upload_write_is_cleaned_up(
+    client: TestClient,
+    uploads_dir: Path,
+    sample_png_bytes: bytes,
+    monkeypatch,
+):
+    original_write_bytes = Path.write_bytes
+
+    def fail_after_partial_write(
+        path: Path,
+        contents: bytes,
+    ) -> None:
+        original_write_bytes(path, contents[:1])
+        raise OSError("disk full")
+
+    monkeypatch.setattr(
+        Path,
+        "write_bytes",
+        fail_after_partial_write,
+    )
+
+    response = client.post(
+        "/api/images",
+        files=[
+            (
+                "images",
+                (
+                    "reference.png",
+                    sample_png_bytes,
+                    "image/png",
+                ),
+            ),
+        ],
+    )
+
+    assert response.status_code == 500
+    assert list(uploads_dir.iterdir()) == []
+    assert client.get("/api/images").json() == []

@@ -68,6 +68,18 @@ PUBLIC_API_PATHS = {
 }
 
 
+SECURITY_HEADERS = {
+    "X-Content-Type-Options":
+        "nosniff",
+
+    "X-Frame-Options":
+        "DENY",
+
+    "Referrer-Policy":
+        "no-referrer",
+}
+
+
 RATE_LIMIT_WINDOW_SECONDS = (
     60.0
 )
@@ -115,10 +127,13 @@ class RateLimitRule:
 
 
 def get_app_environment() -> str:
+    # Fail closed: an unset APP_ENV is
+    # treated as production so a forgotten
+    # variable never leaves the API open.
     value = (
         os.getenv(
             "APP_ENV",
-            "development",
+            "",
         )
         .strip()
         .lower()
@@ -126,7 +141,7 @@ def get_app_environment() -> str:
 
     return (
         value
-        or "development"
+        or "production"
     )
 
 
@@ -176,9 +191,15 @@ def is_request_authorized(
     ):
         return False
 
+    # Compare bytes: compare_digest raises
+    # TypeError on non-ASCII str values.
     return hmac.compare_digest(
-        supplied_token,
-        expected_token,
+        supplied_token.encode(
+            "utf-8",
+        ),
+        expected_token.encode(
+            "utf-8",
+        ),
     )
 
 
@@ -374,25 +395,10 @@ def get_rate_limit_rule(
 def get_client_identity(
     request: Request,
 ) -> str:
-    if request.client:
-        host = (
-            request.client.host
-        )
-
-    else:
-        host = "unknown"
-
-    token = (
-        request.headers.get(
-            ACCESS_HEADER_NAME,
-            "",
-        )
-    )
-
-    if token:
+    if is_access_control_enabled():
         token_digest = (
             hashlib.sha256(
-                token.encode(
+                get_access_token().encode(
                     "utf-8",
                 )
             )
@@ -401,14 +407,47 @@ def get_client_identity(
             ]
         )
 
-    else:
-        token_digest = (
-            "anonymous"
+        return f"owner:{token_digest}"
+
+    host = (
+        request.client.host
+        if request.client
+        else "unknown"
+    )
+
+    return f"host:{host}"
+
+
+def is_api_docs_enabled() -> bool:
+    return (
+        get_app_environment()
+        != "production"
+    )
+
+
+class SecurityHeadersMiddleware(
+    BaseHTTPMiddleware,
+):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next:
+            RequestResponseEndpoint,
+    ) -> Response:
+        response = await call_next(
+            request,
         )
 
-    return (
-        f"{host}:{token_digest}"
-    )
+        for (
+            name,
+            value,
+        ) in SECURITY_HEADERS.items():
+            response.headers.setdefault(
+                name,
+                value,
+            )
+
+        return response
 
 
 class AccessControlMiddleware(

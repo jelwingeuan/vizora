@@ -1,5 +1,8 @@
 import {
+  useCallback,
   useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
 } from 'react'
 
@@ -10,6 +13,10 @@ import type {
 import type {
   VisualReference,
 } from '../../types/image'
+
+import type {
+  FindSimilarOptions,
+} from '../../types/search'
 
 import {
   normalizeImageTag,
@@ -35,6 +42,7 @@ type ImageDetailPanelProps = {
   onFindSimilar: (
     image:
       VisualReference,
+    options?: FindSimilarOptions,
   ) => Promise<void>
 
   onSetFavorite?: (
@@ -100,6 +108,51 @@ export function ImageDetailPanel({
       string | null
     >(null)
 
+  const panelRef =
+    useRef<HTMLElement>(
+      null,
+    )
+
+  const closeButtonRef =
+    useRef<HTMLButtonElement>(
+      null,
+    )
+
+  const similarityAbortRef =
+    useRef<AbortController | null>(null)
+
+  const handleClose = useCallback(() => {
+    similarityAbortRef.current?.abort()
+    similarityAbortRef.current = null
+    onClose()
+  }, [onClose])
+
+  useEffect(() => () => {
+    similarityAbortRef.current?.abort()
+    similarityAbortRef.current = null
+  }, [image.id])
+
+
+  useLayoutEffect(() => {
+    const previouslyFocusedElement =
+      document.activeElement
+      instanceof HTMLElement
+        ? document.activeElement
+        : null
+
+    closeButtonRef.current?.focus()
+
+    return () => {
+      if (
+        previouslyFocusedElement
+          ?.isConnected
+      ) {
+        previouslyFocusedElement
+          .focus()
+      }
+    }
+  }, [])
+
 
   useEffect(() => {
     function handleKeyDown(
@@ -110,7 +163,76 @@ export function ImageDetailPanel({
         event.key ===
         'Escape'
       ) {
-        onClose()
+        handleClose()
+
+        return
+      }
+
+      if (
+        event.key !==
+        'Tab'
+      ) {
+        return
+      }
+
+      const panel =
+        panelRef.current
+
+      if (!panel) {
+        return
+      }
+
+      const focusableElements =
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )
+
+      const first =
+        focusableElements[0]
+
+      const last =
+        focusableElements[
+          focusableElements.length
+          - 1
+        ]
+
+      if (!first || !last) {
+        return
+      }
+
+      if (
+        !panel.contains(
+          document.activeElement,
+        )
+      ) {
+        event.preventDefault()
+
+        const target =
+          event.shiftKey
+            ? last
+            : first
+
+        target.focus()
+
+        return
+      }
+
+      if (
+        event.shiftKey
+        && document.activeElement
+        === first
+      ) {
+        event.preventDefault()
+        last.focus()
+      }
+
+      if (
+        !event.shiftKey
+        && document.activeElement
+        === last
+      ) {
+        event.preventDefault()
+        first.focus()
       }
     }
 
@@ -126,7 +248,7 @@ export function ImageDetailPanel({
       )
     }
   }, [
-    onClose,
+    handleClose,
   ])
 
 
@@ -162,6 +284,9 @@ export function ImageDetailPanel({
 
 
   async function handleFindSimilar() {
+    const controller = new AbortController()
+    similarityAbortRef.current = controller
+
     setIsFindingSimilar(
       true,
     )
@@ -173,23 +298,32 @@ export function ImageDetailPanel({
     try {
       await onFindSimilar(
         image,
+        {
+          signal: controller.signal,
+        },
       )
 
-      onClose()
+      if (!controller.signal.aborted) {
+        similarityAbortRef.current = null
+        setIsFindingSimilar(false)
+        handleClose()
+      }
 
     } catch (error) {
-      setSimilarityError(
-        error instanceof Error
-          ? error.message
-          : (
-              'Unable to find similar images.'
-            ),
-      )
+      if (!controller.signal.aborted) {
+        controller.abort()
+        setSimilarityError(
+          error instanceof Error
+            ? error.message
+            : 'Unable to find similar images.',
+        )
+      }
 
     } finally {
-      setIsFindingSimilar(
-        false,
-      )
+      if (similarityAbortRef.current === controller) {
+        similarityAbortRef.current = null
+        setIsFindingSimilar(false)
+      }
     }
   }
 
@@ -236,11 +370,12 @@ export function ImageDetailPanel({
     <div
       className="detail-panel-backdrop"
       onClick={
-        onClose
+        handleClose
       }
       role="presentation"
     >
       <aside
+        ref={panelRef}
         className="image-detail-panel"
         role="dialog"
         aria-modal="true"
@@ -263,13 +398,13 @@ export function ImageDetailPanel({
           </div>
 
           <button
+            ref={closeButtonRef}
             className="detail-panel-close"
             type="button"
             aria-label="Close image details"
             onClick={
-              onClose
+              handleClose
             }
-            autoFocus
           >
             <svg
               viewBox="0 0 24 24"

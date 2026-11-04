@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -26,6 +27,27 @@ import type {
 } from '../../types/image'
 
 
+const NativeURL = URL
+
+
+// Keep the real URL constructor so origin
+// checks still work while blob URLs are mocked.
+function stubBlobUrls(
+  methods: {
+    createObjectURL: (blob: Blob) => string
+    revokeObjectURL: (url: string) => void
+  },
+) {
+  vi.stubGlobal(
+    'URL',
+    Object.assign(
+      class extends NativeURL {},
+      methods,
+    ),
+  )
+}
+
+
 const uploadedImage: VisualReference = {
   id: 'image-123',
   title: 'Uploaded image',
@@ -49,6 +71,61 @@ afterEach(() => {
 })
 
 
+it('waits for lazy uploads to approach the viewport before fetching', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    blob: async () => new Blob(['image'], { type: 'image/png' }),
+  })
+  const observe = vi.fn()
+  const disconnect = vi.fn()
+  let notify: IntersectionObserverCallback = () => {}
+
+  class MockIntersectionObserver {
+    observe = observe
+    disconnect = disconnect
+
+    constructor(callback: IntersectionObserverCallback) {
+      notify = callback
+    }
+  }
+
+  vi.stubGlobal('fetch', fetchMock)
+  vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+  stubBlobUrls({
+    createObjectURL: vi.fn().mockReturnValue('blob:visible'),
+    revokeObjectURL: vi.fn(),
+  })
+
+  const { unmount } = render(
+    <ReferenceImage
+      image={uploadedImage}
+      alt={uploadedImage.alt}
+      loading="lazy"
+    />,
+  )
+
+  expect(observe).toHaveBeenCalledWith(screen.getByRole('img'))
+  expect(fetchMock).not.toHaveBeenCalled()
+
+  act(() => {
+    notify([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver)
+  })
+  expect(fetchMock).not.toHaveBeenCalled()
+
+  act(() => {
+    notify([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+  })
+
+  await waitFor(() => {
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:visible')
+  })
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+  expect(disconnect).toHaveBeenCalled()
+
+  unmount()
+})
+
+
 it('loads uploads with the owner header and revokes replaced and unmounted blob URLs', async () => {
   window.sessionStorage.setItem(
     'vizora.accessToken',
@@ -67,7 +144,7 @@ it('loads uploads with the owner header and revokes replaced and unmounted blob 
   const revokeObjectURL = vi.fn()
 
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('URL', {
+  stubBlobUrls({
     createObjectURL,
     revokeObjectURL,
   })
@@ -107,6 +184,43 @@ it('loads uploads with the owner header and revokes replaced and unmounted blob 
 })
 
 
+it('never sends the owner header to another origin', async () => {
+  window.sessionStorage.setItem(
+    'vizora.accessToken',
+    'owner-token',
+  )
+
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    blob: async () => new Blob(['image'], { type: 'image/png' }),
+  })
+
+  vi.stubGlobal('fetch', fetchMock)
+  stubBlobUrls({
+    createObjectURL: vi.fn().mockReturnValue('blob:foreign'),
+    revokeObjectURL: vi.fn(),
+  })
+
+  render(
+    <ReferenceImage
+      image={{
+        ...uploadedImage,
+        src: 'https://attacker.example/api/images/image-123/file',
+      }}
+      alt={uploadedImage.alt}
+    />,
+  )
+
+  await waitFor(() => {
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  const options = fetchMock.mock.calls[0][1] as RequestInit
+
+  expect(new Headers(options.headers).has('X-Vizora-Token')).toBe(false)
+})
+
+
 it('displays uploaded Discover results and their detail preview', async () => {
   window.sessionStorage.setItem(
     'vizora.accessToken',
@@ -119,7 +233,7 @@ it('displays uploaded Discover results and their detail preview', async () => {
   })
 
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('URL', {
+  stubBlobUrls({
     createObjectURL: vi.fn().mockReturnValue('blob:discover'),
     revokeObjectURL: vi.fn(),
   })

@@ -33,6 +33,10 @@ const ACCESS_HEADER_NAME =
   'X-Vizora-Token'
 
 
+export const ACCESS_REVOKED_EVENT =
+  'vizora:access-revoked'
+
+
 export type AccessStatusResponse = {
   status:
     string
@@ -47,6 +51,9 @@ export class ApiError
   status:
     number
 
+  retryAfterSeconds:
+    number | null
+
 
   constructor(
     message:
@@ -54,6 +61,9 @@ export class ApiError
 
     status:
       number,
+
+    retryAfterSeconds:
+      number | null = null,
   ) {
     super(
       message,
@@ -64,6 +74,9 @@ export class ApiError
 
     this.status =
       status
+
+    this.retryAfterSeconds =
+      retryAfterSeconds
   }
 }
 
@@ -138,6 +151,59 @@ export function clearAccessToken() {
 }
 
 
+function resolveOrigin(
+  url:
+    string,
+): string | null {
+  try {
+    return new URL(
+      url,
+      window.location.origin,
+    ).origin
+
+  } catch {
+    return null
+  }
+}
+
+
+// Only first-party origins may receive the
+// access token. Image URLs come from API
+// responses, so never trust them blindly.
+function canReceiveAccessToken(
+  url:
+    string,
+): boolean {
+  if (
+    typeof window ===
+      'undefined'
+  ) {
+    return false
+  }
+
+  const targetOrigin =
+    resolveOrigin(
+      url,
+    )
+
+  if (!targetOrigin) {
+    return false
+  }
+
+  const trustedOrigins = [
+    window.location.origin,
+    resolveOrigin(
+      API_BASE_URL
+      || window.location.origin,
+    ),
+  ]
+
+  return trustedOrigins.includes(
+    targetOrigin,
+  )
+}
+
+
 export async function fetchWithAccess(
   url:
     string,
@@ -166,12 +232,18 @@ export async function fetchWithAccess(
   const accessToken =
     getAccessToken()
 
+  const trustedRequest =
+    canReceiveAccessToken(
+      url,
+    )
+
 
   if (
     accessToken
     && !headers.has(
       ACCESS_HEADER_NAME,
     )
+    && trustedRequest
   ) {
     headers.set(
       ACCESS_HEADER_NAME,
@@ -180,7 +252,7 @@ export async function fetchWithAccess(
   }
 
 
-  return fetch(
+  const response = await fetch(
     url,
 
     {
@@ -188,6 +260,31 @@ export async function fetchWithAccess(
       headers,
     },
   )
+
+  if (
+    response.status === 401
+    && trustedRequest
+    && (
+      !response.url
+      || canReceiveAccessToken(
+        response.url,
+      )
+    )
+    && accessToken
+    && headers.get(
+      ACCESS_HEADER_NAME,
+    ) === accessToken
+    && getAccessToken() === accessToken
+  ) {
+    clearAccessToken()
+    window.dispatchEvent(
+      new Event(
+        ACCESS_REVOKED_EVENT,
+      ),
+    )
+  }
+
+  return response
 }
 
 
@@ -234,9 +331,20 @@ export async function apiRequest<T>(
     }
 
 
+    const retryAfter =
+      Number(
+        response.headers.get(
+          'Retry-After',
+        ),
+      )
+
     throw new ApiError(
       message,
       response.status,
+      Number.isFinite(retryAfter)
+      && retryAfter > 0
+        ? retryAfter
+        : null,
     )
   }
 

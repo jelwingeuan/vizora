@@ -6,3 +6,7 @@ export type SearchResult = {
 export type SearchResponse = {
   results: SearchResult[]
 }
+
+export type FindSimilarOptions = {
+  signal?: AbortSignal
+}

@@ -33,7 +33,10 @@ from app.services.image_service import (
 
 from app.services.visual_ai import (
     AIConfigurationError,
+    AIImageSizeError,
     AIServiceError,
+    INLINE_IMAGE_TOO_LARGE_DETAIL,
+    MAX_INLINE_IMAGE_SIZE,
     VisualAI,
     get_visual_ai,
 )
@@ -94,6 +97,14 @@ def analyze_stored_image(
             ),
         )
 
+    if stored_image.file_size > MAX_INLINE_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_413_CONTENT_TOO_LARGE
+            ),
+            detail=INLINE_IMAGE_TOO_LARGE_DETAIL,
+        )
+
     try:
         contents = read_stored_image_bytes(
             stored_image,
@@ -128,6 +139,14 @@ def analyze_stored_image(
         raise HTTPException(
             status_code=(
                 status.HTTP_503_SERVICE_UNAVAILABLE
+            ),
+            detail=str(error),
+        ) from error
+
+    except AIImageSizeError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_413_CONTENT_TOO_LARGE
             ),
             detail=str(error),
         ) from error

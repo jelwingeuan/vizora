@@ -20,6 +20,10 @@ from dataclasses import (
     dataclass,
 )
 
+from threading import (
+    Lock,
+)
+
 from sqlalchemy import (
     select,
 )
@@ -54,8 +58,6 @@ from app.services.image_service import (
 )
 
 from app.services.visual_ai import (
-    AIConfigurationError,
-    AIServiceError,
     VisualAI,
 )
 
@@ -82,6 +84,10 @@ MIN_SIMILARITY_SCORE = 0.5
 SIMILARITY_SCORE_WINDOW = 0.14
 
 IMAGE_EMBEDDING_WORKERS = 4
+
+
+# Concurrent requests share the first embedding pass over the library.
+EMBEDDING_CACHE_LOCK = Lock()
 
 
 class SearchConfigurationError(
@@ -161,13 +167,14 @@ def search_library(
         for image in images
     }
 
-    document_embeddings = (
-        ensure_text_embeddings(
-            database,
-            ai,
-            documents,
+    with EMBEDDING_CACHE_LOCK:
+        document_embeddings = (
+            ensure_text_embeddings(
+                database,
+                ai,
+                documents,
+            )
         )
-    )
 
     [query_embedding] = ai.embed_texts(
         [normalized_query],
@@ -221,10 +228,9 @@ def find_similar_images(
     """
     Rank other stored images by visual similarity to `source`.
 
-    Candidates whose embedding cannot be created are skipped. Raises
-    the underlying error when the source itself cannot be embedded
-    or the provider is not configured, and AIServiceError when no
-    candidate could be embedded.
+    Raises the underlying error when any image cannot be embedded,
+    so a partial comparison is never shown as complete. Embeddings
+    created before the failure are kept, so a retry resumes.
     """
 
     images = list_stored_images(
@@ -240,12 +246,12 @@ def find_similar_images(
     if not candidates:
         return []
 
-    embeddings = ensure_image_embeddings(
-        database,
-        ai,
-        images,
-        required=source,
-    )
+    with EMBEDDING_CACHE_LOCK:
+        embeddings = ensure_image_embeddings(
+            database,
+            ai,
+            images,
+        )
 
     scores = [
         RankedImage(
@@ -264,13 +270,7 @@ def find_similar_images(
             ),
         )
         for candidate in candidates
-        if candidate.id in embeddings
     ]
-
-    if not scores:
-        raise AIServiceError(
-            "Unable to generate comparison embeddings."
-        )
 
     return select_top_matches(
         scores,
@@ -387,7 +387,6 @@ def ensure_image_embeddings(
     database: Session,
     ai: VisualAI,
     images: list[Image],
-    required: Image,
 ) -> dict[int, list[float]]:
     records = {
         record.image_id: record
@@ -455,23 +454,6 @@ def ensure_image_embeddings(
         )
     }
 
-    for image, outcome in zip(
-        missing,
-        outcomes,
-        strict=True,
-    ):
-        if isinstance(
-            outcome,
-            AIConfigurationError,
-        ) or (
-            image.id == required.id
-            and isinstance(
-                outcome,
-                Exception,
-            )
-        ):
-            raise outcome
-
     if created:
         try:
             for image_id, vector in created.items():
@@ -505,18 +487,18 @@ def ensure_image_embeddings(
                 "Unable to save image embeddings."
             ) from error
 
-    missing_ids = {
-        image.id
-        for image in missing
-    }
+    for outcome in outcomes:
+        if isinstance(
+            outcome,
+            Exception,
+        ):
+            raise outcome
 
     return {
         image.id: list(
             records[image.id].embedding,
         )
         for image in images
-        if image.id not in missing_ids
-        or image.id in created
     }
 
 

@@ -85,6 +85,8 @@ AI analysis can generate:
 
 For uploaded references, completed analysis is persisted in the database and restored when the workspace is reopened.
 
+AI analysis accepts images up to 14 MiB; larger images can still be stored in the library.
+
 The Image Detail experience presents AI intelligence alongside the reference rather than treating AI as a separate tool.
 
 ---
@@ -460,6 +462,8 @@ APP_ENV=development
 
 GEMINI_API_KEY=your_private_gemini_api_key
 ```
+
+Keep `APP_ENV=development` for local work. If `APP_ENV` is missing, the backend treats it as `production` and requires `VIZORA_ACCESS_TOKEN`.
 
 Never commit a real API key or access token.
 

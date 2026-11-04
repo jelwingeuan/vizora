@@ -35,6 +35,7 @@ export async function semanticSearch(
 
 export async function findSimilarImages(
   imageId: string,
+  signal?: AbortSignal,
 ): Promise<SearchResponse> {
   return apiRequest<SearchResponse>(
     `/api/search/similar/${
@@ -44,6 +45,7 @@ export async function findSimilarImages(
     }`,
     {
       method: 'POST',
+      signal,
     },
   )
 }

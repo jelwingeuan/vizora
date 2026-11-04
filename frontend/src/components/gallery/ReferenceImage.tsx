@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react'
 
@@ -24,6 +25,7 @@ export function ReferenceImage({
   alt,
   loading,
 }: ReferenceImageProps) {
+  const imageRef = useRef<HTMLImageElement>(null)
   const [loaded, setLoaded] = useState<{
     source: string
     url: string
@@ -33,8 +35,10 @@ export function ReferenceImage({
   useEffect(() => {
     const controller = new AbortController()
     let objectUrl: string | undefined
+    let observer: IntersectionObserver | undefined
+    let hasStarted = false
 
-    void (async () => {
+    async function loadImage() {
       try {
         const response = await fetchWithAccess(
           image.src,
@@ -65,16 +69,41 @@ export function ReferenceImage({
       } catch {
         // Leave the image empty when loading fails.
       }
-    })()
+    }
+
+    if (
+      loading === 'lazy'
+      && typeof IntersectionObserver !== 'undefined'
+      && imageRef.current
+    ) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (
+            !hasStarted
+            && !controller.signal.aborted
+            && entries.some((entry) => entry.isIntersecting)
+          ) {
+            hasStarted = true
+            observer?.disconnect()
+            void loadImage()
+          }
+        },
+        { rootMargin: '200px' },
+      )
+      observer.observe(imageRef.current)
+    } else {
+      void loadImage()
+    }
 
     return () => {
+      observer?.disconnect()
       controller.abort()
 
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl)
       }
     }
-  }, [image.src])
+  }, [image.src, loading])
 
   const src = loaded?.source === image.src && !loaded.signal.aborted
     ? loaded.url
@@ -82,6 +111,7 @@ export function ReferenceImage({
 
   return (
     <img
+      ref={imageRef}
       src={src}
       alt={alt}
       loading={loading}

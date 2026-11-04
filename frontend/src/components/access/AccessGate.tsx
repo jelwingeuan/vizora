@@ -9,6 +9,7 @@ import type {
 } from 'react'
 
 import {
+  ACCESS_REVOKED_EVENT,
   ApiError,
   checkAccess,
   clearAccessToken,
@@ -64,7 +65,27 @@ export function AccessGate({
 
 
   useEffect(() => {
+    function handleRevokedAccess() {
+      clearAccessToken()
+      setToken('')
+      setError(
+        'Your access token is no longer valid. Enter it again.',
+      )
+      setAccessState('locked')
+    }
+
+    window.addEventListener(
+      ACCESS_REVOKED_EVENT,
+      handleRevokedAccess,
+    )
     void verifyCurrentAccess()
+
+    return () => {
+      window.removeEventListener(
+        ACCESS_REVOKED_EVENT,
+        handleRevokedAccess,
+      )
+    }
   }, [])
 
 

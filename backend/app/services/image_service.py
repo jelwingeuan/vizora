@@ -354,12 +354,12 @@ def persist_uploaded_images(
                 / stored_filename
             )
 
-            destination.write_bytes(
-                upload.contents,
-            )
-
             saved_paths.append(
                 destination,
+            )
+
+            destination.write_bytes(
+                upload.contents,
             )
 
             original_filename = (

@@ -4,6 +4,10 @@ from contextlib import (
     asynccontextmanager,
 )
 
+from urllib.parse import (
+    urlsplit,
+)
+
 from fastapi import (
     FastAPI,
 )
@@ -16,9 +20,16 @@ from app.core.database import (
     initialize_database,
 )
 
+from app.core.request_size import (
+    UploadSizeLimitMiddleware,
+)
+
 from app.core.security import (
     AccessControlMiddleware,
     RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    get_app_environment,
+    is_api_docs_enabled,
     validate_security_configuration,
 )
 
@@ -36,6 +47,21 @@ DEFAULT_ALLOWED_ORIGINS = (
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 )
+
+PRODUCTION_CORS_ERROR = (
+    "CORS_ORIGINS must contain exact HTTPS frontend origins in production."
+)
+
+
+MULTIPART_OVERHEAD_BYTES = 1024 * 1024
+
+
+UPLOAD_BODY_LIMITS = {
+    "/api/images": (
+        images.MAX_UPLOAD_REQUEST_SIZE
+        + MULTIPART_OVERHEAD_BYTES
+    ),
+}
 
 
 def get_allowed_origins() -> list[str]:
@@ -75,11 +101,62 @@ def get_allowed_origins() -> list[str]:
     )
 
 
+def validate_cors_configuration() -> None:
+    if get_app_environment() != "production":
+        return
+
+    if not os.getenv("CORS_ORIGINS", "").strip():
+        raise RuntimeError(PRODUCTION_CORS_ERROR)
+
+    for origin in get_allowed_origins():
+        try:
+            parsed = urlsplit(origin)
+            host = parsed.hostname
+            parsed.port
+        except ValueError as error:
+            raise RuntimeError(PRODUCTION_CORS_ERROR) from error
+
+        if (
+            parsed.scheme != "https"
+            or not host
+            or host == "localhost"
+            or host.endswith(".localhost")
+            or host.startswith("127.")
+            or host == "::1"
+            or "*" in host
+            or parsed.username
+            or parsed.password
+            or parsed.netloc != parsed.netloc.lower()
+            or parsed.port == 443
+            or origin != f"{parsed.scheme}://{parsed.netloc}"
+        ):
+            raise RuntimeError(PRODUCTION_CORS_ERROR)
+
+
+def get_docs_configuration() -> dict[
+    str,
+    str | None,
+]:
+    # The docs routes live outside /api,
+    # so the access middleware does not
+    # protect them. Hide them in production.
+    if is_api_docs_enabled():
+        return {}
+
+    return {
+        "docs_url": None,
+        "redoc_url": None,
+        "openapi_url": None,
+    }
+
+
 @asynccontextmanager
 async def lifespan(
     _: FastAPI,
 ):
     validate_security_configuration()
+
+    validate_cors_configuration()
 
     initialize_database()
 
@@ -97,6 +174,15 @@ app = FastAPI(
     version="0.1.0",
 
     lifespan=lifespan,
+
+    **get_docs_configuration(),
+)
+
+
+app.add_middleware(
+    UploadSizeLimitMiddleware,
+
+    limits=UPLOAD_BODY_LIMITS,
 )
 
 
@@ -107,6 +193,11 @@ app.add_middleware(
 
 app.add_middleware(
     AccessControlMiddleware,
+)
+
+
+app.add_middleware(
+    SecurityHeadersMiddleware,
 )
 
 
