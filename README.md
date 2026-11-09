@@ -11,6 +11,7 @@ It combines persistent image organization with AI-powered visual analysis, seman
 > **Status:** v1.0 pre-release  
 > **Current phase:** Interface refinement  
 > **Latest interface milestone:** Commit 38 — Image Detail Experience  
+> **Latest architecture milestone:** Backend search and similarity index  
 > **Deployment:** Prepared, not currently deployed
 
 ---
@@ -344,6 +345,53 @@ The current detail experience includes:
 
 ---
 
+# Architecture
+
+The frontend asks the backend for results; it never ranks images or handles embeddings itself.
+
+```text
+React frontend
+      │  one request per search or comparison
+      ▼
+FastAPI routers
+      │
+      ├── library_index.py   search documents, cached embeddings, scoring
+      │         │
+      │         ▼
+      └── visual_ai.py       every Gemini call: analysis, image and text embeddings
+                │
+                ▼
+          Google Gemini
+```
+
+## Visual AI adapter
+
+`backend/app/services/visual_ai.py` is the only module that talks to Gemini. It reads the API key, creates and closes the client, validates embeddings, and turns provider failures into two errors:
+
+- not configured → `503`
+- provider failure → `502`, with details logged on the server and not returned to the client
+
+Tests replace it with an offline fake, so the backend suite needs no API key or network access.
+
+## Library index
+
+`backend/app/services/library_index.py` answers two questions about the stored library:
+
+- **Semantic search:** builds a search document from each reference's title and AI analysis, embeds only documents that changed since the last search, then combines semantic, lexical and title scores.
+- **Find Similar:** compares stored image embeddings, creating the missing ones four at a time.
+
+Embeddings are cached in the database (`image_text_embeddings` and `image_embeddings`) and reused until the reference or the configured model changes. The first Find Similar on a large library embeds every reference that has no stored embedding, so it can take noticeably longer than later comparisons.
+
+## Search API
+
+| Method | Route | Body | Returns |
+| --- | --- | --- | --- |
+| `POST` | `/api/search/semantic` | `{"query": "..."}` | ranked `results` of `{id, score}` |
+| `POST` | `/api/search/similar/{image_id}` | none | ranked `results` of `{id, score}` |
+| `POST` | `/api/ai/analyze/{image_id}` | none | the saved AI analysis |
+
+---
+
 # Project Structure
 
 ```text
@@ -360,6 +408,8 @@ vizora/
 │   │   ├── routers/
 │   │   ├── schemas/
 │   │   └── services/
+│   │       ├── visual_ai.py
+│   │       └── library_index.py
 │   ├── tests/
 │   ├── .env.example
 │   ├── requirements.txt
@@ -466,6 +516,18 @@ GEMINI_API_KEY=your_private_gemini_api_key
 Keep `APP_ENV=development` for local work. If `APP_ENV` is missing, the backend treats it as `production` and requires `VIZORA_ACCESS_TOKEN`.
 
 Never commit a real API key or access token.
+
+Optional AI settings in `backend/.env.example`:
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `GEMINI_VISION_MODEL` | `gemini-3.5-flash-lite` | image analysis |
+| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | search text; must stay `gemini-embedding-001` |
+| `GEMINI_IMAGE_EMBEDDING_MODEL` | `gemini-embedding-2` | Find Similar |
+| `SEMANTIC_SEARCH_MIN_SCORE` | `0.42` | between 0 and 1 |
+| `SEMANTIC_SEARCH_SCORE_WINDOW` | `0.18` | between 0 and 1 |
+
+Changing an embedding model makes cached embeddings stale; they are recreated on the next search or comparison.
 
 ---
 
@@ -726,6 +788,14 @@ Production mode also supports configurable rate limiting for:
 - uploads
 
 The health endpoint remains public so hosting infrastructure can verify backend availability.
+
+Other production protections:
+
+- a missing `APP_ENV` is treated as `production`
+- API docs (`/docs`, `/redoc`, `/openapi.json`) are disabled in production
+- upload request bodies are size-limited before they are parsed
+- backend responses carry security headers, and the Vercel frontend sends a Content Security Policy and HSTS
+- Gemini error details are logged on the server, not returned to clients
 
 ---
 
